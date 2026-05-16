@@ -333,7 +333,7 @@ def student_space(df_students, df_lessons):
                             - 🎨 **ملاحظة التنظيم والترتيب الهيكلي للدفتر:** (تقييم الخط واستعمال الألوان المناسبة للوضوح والترتيب)
                             """
                             
-                            model = genai.GenerativeModel("gemini-1.5-flash")
+                            model = genai.GenerativeModel("gemini-2.5-flash")
                             imgs = [Image.open(f) for f in up_files]
                             
                             # تم إصلاح الخطأ البرمجي هنا لتمرير المتغيّر الصحيح imgs
