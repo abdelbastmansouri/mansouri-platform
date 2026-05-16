@@ -344,4 +344,33 @@ def student_space(df_students, df_lessons):
                             imgs = [Image.open(f) for f in up_files]
                             res = model.generate_content([prompt_instructions, *images])
                             
-                            # حفظ البيانات والتقرير في ور
+                            # حفظ البيانات والتقرير في ورقة السجلات لملف Google Sheets
+                            client = get_gspread_client()
+                            sh = client.open("les classes").worksheet("Reports")
+                            sh.append_row([datetime.now().strftime("%Y-%m-%d"), st.session_state.user['name'], st.session_state.user['class'], l_name, res.text, "تم التدقيق بنجاح"])
+                            
+                            st.markdown("### 📋 تقرير الوزارة الرقمي لتدقيق الدفتر المستلم")
+                            st.info(res.text)
+                            st.success("تمت مزامنة وتسجيل البيانات وحفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
+                    else:
+                        st.warning("⚠️ المرجو تزويد المنصة بصور الدفتر أولاً للبدء.")
+
+# --- 5. منطق توزيع وتوجيه مسارات العرض والتحكم ---
+if st.session_state.role == "student":
+    student_space(df_students, df_lessons)
+    
+elif st.session_state.role == "admin":
+    if not st.session_state.auth:
+        st.markdown("<h3 style='color: #1e3a8a;'>🔑 فضاء الأستاذ والإدارة التربوية</h3>", unsafe_allow_html=True)
+        admin_pwd = st.text_input("الرجاء إدخال كلمة سر الولوج الإدارية المخصصة:", type="password")
+        
+        if st.button("تأكيد الهوية وتفعيل الصلاحيات 👨‍🏫", use_container_width=True):
+            if admin_pwd == "1234":
+                st.session_state.auth = True
+                st.session_state.user = {"name": "الأستاذ عبد الباسط المنصوري"}
+                st.success("مرحباً بك مجدداً يا أستاذ! تم تحديث الصلاحيات الشاملة بنجاح.")
+                st.rerun()
+            else:
+                st.error("❌ رمز المرور الإداري غير صحيح، يرجى المحاولة مرة أخرى.")
+    else:
+        admin_space(df_students, df_reports, df_lessons)
