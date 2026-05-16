@@ -6,6 +6,8 @@ import plotly.express as px
 from datetime import datetime
 import gspread
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 import io
 
 # --- 1. الإعدادات الأولية وإضفاء الطابع الاحترافي للوزارة ---
@@ -15,48 +17,29 @@ st.set_page_config(
     page_icon="🇲🇦"
 )
 
-# تصميم خلفية وتنسيقات CSS احترافية مستوحاة من مواقع الوزارة الرسمية
+# تصميم وتنسيقات CSS الوزارية
 st.markdown("""
     <style>
-    /* تغيير الخلفية العامة للموقع */
-    .stApp {
-        background-color: #f8fafc;
-    }
-    /* تحسين مظهر القائمة الجانبية */
-    [data-testid="stSidebar"] {
-        background-color: #0f172a;
-        color: white;
-    }
-    [data-testid="stSidebar"] * {
-        color: white !important;
-    }
-    /* تصميم البطاقات الإحصائية للأستاذ */
+    .stApp { background-color: #f8fafc; }
+    [data-testid="stSidebar"] { background-color: #0f172a; color: white; }
+    [data-testid="stSidebar"] * { color: white !important; }
     .metric-card {
         background-color: white;
-        border-top: 4px solid #d97706; /* خط ذهبي رسمي */
+        border-top: 4px solid #d97706;
         padding: 20px;
         border-radius: 10px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         text-align: center;
     }
-    /* العناوين الرئيسية */
-    h1, h2, h3 {
-        color: #1e3a8a !important; /* الأزرق الملكي للوزارة */
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-weight: bold;
-    }
-    /* تحسين مظهر الأزرار */
+    h1, h2, h3 { color: #1e3a8a !important; font-family: 'Segoe UI', sans-serif; font-weight: bold; }
     .stButton>button {
-        background-color: #1e3a8a !important;
-        color: white !important;
-        border-radius: 8px !important;
-        border: none !important;
-        padding: 10px 24px !important;
-        font-weight: bold !important;
+        background-color: #1e3a8a !important; color: white !important;
+        border-radius: 8px !important; border: none !important;
+        padding: 10px 24px !important; font-weight: bold !important;
         transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        background-color: #d97706 !important; /* التحول للذهبي عند التمرير */
+        background-color: #d97706 !important;
         box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
     }
     </style>
@@ -65,33 +48,66 @@ st.markdown("""
 # إعداد مفتاح Gemini
 genai.configure(api_key="AIzaSyAwhWzEseoWORwT8eBLWBNB57wkuFxaBeA")
 
-# تهيئة متغيرات الجلسة (Session State)
-if 'auth' not in st.session_state:
-    st.session_state.auth = False
-if 'user' not in st.session_state:
-    st.session_state.user = {}
-if 'role' not in st.session_state:
-    st.session_state.role = None
+if 'auth' not in st.session_state: st.session_state.auth = False
+if 'user' not in st.session_state: st.session_state.user = {}
+if 'role' not in st.session_state: st.session_state.role = None
+
+# دالة الربط مع خدمات جوجل (Sheets + Drive)
+def get_gcp_credentials():
+    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    return Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
 
 def get_gspread_client():
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
-    return gspread.authorize(creds)
+    return gspread.authorize(get_gcp_credentials())
+
+# دالة مخصصة لرفع ملف الـ PDF إلى الـ Google Drive الخاص بك وجعله عاماً للقراءة
+def upload_pdf_to_drive(file_name, file_bytes):
+    try:
+        creds = get_gcp_credentials()
+        drive_service = build('drive', 'v3', credentials=creds)
+        
+        file_metadata = {
+            'name': file_name,
+            'mimeType': 'application/pdf'
+        }
+        
+        fh = io.BytesIO(file_bytes)
+        media = MediaIoBaseUpload(fh, mimeType='application/pdf', resumable=True)
+        
+        # رفع الملف
+        uploaded_file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink'
+        ).execute()
+        
+        file_id = uploaded_file.get('id')
+        
+        # جعل الملف متاحاً لأي شخص لديه الرابط ليتمكن الـ AI والتلاميذ من قراءته
+        user_permission = {
+            'type': 'anyone',
+            'role': 'reader',
+        }
+        drive_service.permissions().create(
+            fileId=file_id,
+            body=user_permission
+        ).execute()
+        
+        return uploaded_file.get('webViewLink')
+    except Exception as e:
+        st.error(f"خطأ أثناء الرفع إلى Google Drive: {e}")
+        return None
 
 def load_data():
     client = get_gspread_client()
     sh = client.open("les classes")
-    
-    # قراءة بيانات التلاميذ
     df_students = pd.DataFrame(sh.sheet1.get_all_records())
     
-    # قراءة التقارير
     try:
         df_reports = pd.DataFrame(sh.worksheet("Reports").get_all_records())
     except:
         df_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة"])
         
-    # قراءة المراجع الثابتة من ورقة Lessons
     try:
         ws_lessons = sh.worksheet("Lessons")
         df_lessons = pd.DataFrame(ws_lessons.get_all_records())
@@ -105,7 +121,6 @@ def load_data():
         
     return df_students, df_reports, df_lessons
 
-# تحميل البيانات الشاملة من السحاب
 df_students, df_reports, df_lessons = load_data()
 
 def get_lesson_ref(lesson_name, df_lessons):
@@ -115,7 +130,7 @@ def get_lesson_ref(lesson_name, df_lessons):
             return row.iloc[0]["الملاحظات_المرجعية"]
     return "لا توجد ملاحظات مرجعية ثابتة محددة لهذا الدرس من طرف الأستاذ."
 
-# --- 2. بناء القائمة الجانبية (Sidebar) بهوية الوزارة الرقمية ---
+# --- 2. بناء القائمة الجانبية (Sidebar) ---
 with st.sidebar:
     st.markdown("""
         <div style='text-align: center; padding: 10px;'>
@@ -131,21 +146,16 @@ with st.sidebar:
         st.success(f"🇲🇦 مرحباً بك: \n\n**{user_display}**")
         if st.session_state.role == "student":
             st.info(f"🏫 القسم: {st.session_state.user.get('class')}")
-            
         st.divider()
         if st.button("🚪 تسجيل الخروج", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+            for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
     else:
         st.write("⚙️ **توجيه المسار الرقمي:**")
         menu = st.radio("اختر الفضاء المستهدف:", ["🏠 فضاء التلميذ والطالبات", "🔑 فضاء الإدارة والأستاذ"])
         st.session_state.role = "student" if "التلميذ" in menu else "admin"
 
-    st.divider()
-    st.markdown("<p style='text-align: center; color: #64748b !important; font-size: 0.75rem;'>منصة تتبع ومراقبة الدفاتر الرقمية © 2026</p>", unsafe_allow_html=True)
-
-# --- 3. واجهة الأستاذ الاحترافية والمبيانات الجميلة ---
+# --- 3. واجهة الأستاذ الاحترافية وحفظ الـ PDF بشكل دائم ---
 def admin_space(df_students, df_reports, df_lessons):
     st.markdown("""
         <div style='background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white;'>
@@ -154,34 +164,17 @@ def admin_space(df_students, df_reports, df_lessons):
         </div>
     """, unsafe_allow_html=True)
     
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 لوحة الإحصائيات والمبيانات", "📂 إضافة ورفع الدروس المرجعية", "👥 تتبع سجلات التلاميذ", "⚙️ الإعدادات"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📊 لوحة الإحصائيات", "📂 إضافة ورفع الدروس المرجعية", "👥 تتبع سجلات التلاميذ", "⚙️ الإعدادات"])
     
     with tab1:
         st.markdown("### 📈 المؤشرات التربوية العامة")
         col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>إجمالي التلاميذ المسجلين</p><h2 style='margin:0; color:#1e3a8a;'>👥 {len(df_students)}</h2></div>", unsafe_allow_html=True)
-        with col2:
-            st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>عدد الدفاتر المرفوعة والمدققة</p><h2 style='margin:0; color:#1e3a8a;'>📥 {len(df_reports)}</h2></div>", unsafe_allow_html=True)
-        with col3:
-            st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>البنية التربوية (الأقسام)</p><h2 style='margin:0; color:#1e3a8a;'>🏫 {df_students['القسم'].nunique()}</h2></div>", unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
+        with col1: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>إجمالي التلاميذ</p><h2 style='margin:0; color:#1e3a8a;'>👥 {len(df_students)}</h2></div>", unsafe_allow_html=True)
+        with col2: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>الدفاتر المدققة</p><h2 style='margin:0; color:#1e3a8a;'>📥 {len(df_reports)}</h2></div>", unsafe_allow_html=True)
+        with col3: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>الأقسام</p><h2 style='margin:0; color:#1e3a8a;'>🏫 {df_students['القسم'].nunique()}</h2></div>", unsafe_allow_html=True)
         
         if not df_reports.empty:
-            fig = px.bar(
-                df_reports.groupby('القسم').size().reset_index(name='عدد الإرسالات'), 
-                x='القسم', 
-                y='عدد الإرسالات', 
-                title="📊 تفاعل الأقسام والالتزام بالدفاتر الرقمية",
-                color_discrete_sequence=['#1e3a8a']
-            )
-            fig.update_layout(
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                font_family="Segoe UI",
-                title_font_size=18
-            )
+            fig = px.bar(df_reports.groupby('القسم').size().reset_index(name='عدد الإرسالات'), x='القسم', y='عدد الإرسالات', title="📊 تفاعل الأقسام والالتزام بالدفاتر الرقمية", color_discrete_sequence=['#1e3a8a'])
             st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
@@ -189,22 +182,32 @@ def admin_space(df_students, df_reports, df_lessons):
         lesson_choice = st.selectbox("اختر الدرس المستهدف بالتحديث أو الإضافة:", ["الدرس 1", "الدرس 2", "الدرس 3"])
         
         current_ref = get_lesson_ref(lesson_choice, df_lessons)
-        st.info(f"📋 الوضع الحالي للمرجع المخزن سحابياً للدرس المختار:\n\n{current_ref}")
+        st.info(f"📋 المرجع الحالي المحفوظ سحابياً للدرس:\n\n{current_ref}")
         
-        uploaded_ref_file = st.file_uploader(f"📸 📤 ارفع ملف الدرس المرجعي الرسمي (صور أو PDF):", type=['jpg', 'jpeg', 'png', 'pdf'], accept_multiple_files=True, key="admin_file_uploader")
+        # أداة رفع الـ PDF المرجعي للأستاذ
+        uploaded_ref_file = st.file_uploader(f"📸 📤 ارفع ملف الدرس المرجعي الرسمي (يُفضل صيغة PDF للحفظ الدائم):", type=['pdf', 'jpg', 'jpeg', 'png'], key="admin_file_uploader")
         
-        ref_note = st.text_area("أدخل عناصر الدرس الأساسية والتوجيهات الصارمة للتدقيق عنواناً بعنوان وفقرة بفقرة:", height=150, value=current_ref if "لا توجد ملاحظات" not in current_ref else "")
+        ref_note = st.text_area("أدخل عناصر الدرس الأساسية أو التوجيهات المكتوبة للذكاء الاصطناعي:", height=120, value=current_ref if "لا توجد ملاحظات" not in current_ref else "")
         
         col_btn1, col_btn2 = st.columns(2)
         
         if col_btn1.button("💾 حفظ ونشر الدرس في المنصة بشكل دائم", use_container_width=True):
-            with st.spinner("جاري المزامنة المشفرة مع السحاب..."):
+            with st.spinner("جاري رفع الملف إلى Google Drive وتأمين الرابط الدائم..."):
+                drive_link = ""
+                if uploaded_ref_file is not None:
+                    # قراءة محتوى الملف المرفوع كبايتات ورفعه فوراً للـ Drive
+                    file_bytes = uploaded_ref_file.read()
+                    drive_link = upload_pdf_to_drive(f"{lesson_choice}_{uploaded_ref_file.name}", file_bytes)
+                
                 client = get_gspread_client()
                 sh = client.open("les classes")
                 ws_lessons = sh.worksheet("Lessons")
                 
-                file_status = f" [تم إرفاق {len(uploaded_ref_file)} ملف مرجعي بنجاح]" if uploaded_ref_file else ""
-                full_reference_text = ref_note + file_status
+                # دمج الرابط الثابت من جوجل درايف مع النص والملاحظات حتى لا يضيع أبداً
+                if drive_link:
+                    full_reference_text = f"{ref_note}\n\n🔗 رابط ملف الدرس المرجعي الثابت في Google Drive:\n{drive_link}"
+                else:
+                    full_reference_text = ref_note
                 
                 cell = ws_lessons.find(lesson_choice)
                 if cell:
@@ -213,7 +216,7 @@ def admin_space(df_students, df_reports, df_lessons):
                 else:
                     ws_lessons.append_row([lesson_choice, full_reference_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
                 
-                st.success(f"🎉 ممتاز! تم تثبيت مراجع {lesson_choice} سحابياً بنجاح، ولن تختفي أبداً عند التحديث.")
+                st.success(f"🎉 ممتاز يا أستاذ! تم رفع ملف الـ PDF إلى Google Drive بنجاح، وتم حفظ الرابط بشكل دائم في قاعدة البيانات سحابياً.")
                 st.rerun()
                 
         if col_btn2.button("🗑️ حذف ملف الدرس الحالي (تصفير المرجع)", use_container_width=True):
@@ -225,32 +228,26 @@ def admin_space(df_students, df_reports, df_lessons):
                 if cell:
                     ws_lessons.update_cell(cell.row, 2, "لا توجد ملاحظات مرجعية حالياً")
                     ws_lessons.update_cell(cell.row, 3, "")
-                st.success("تم حذف المرجع بنجاح من قاعدة البيانات.")
+                st.success("تم حذف المرجع بنجاح.")
                 st.rerun()
 
     with tab3:
         st.markdown("### 👥 تتبع السجل الأكاديمي للتلاميذ")
-        search_name = st.selectbox("اختر اسم التلميذ(ة) لعرض التقارير وسجل الالتزام الدفتري المحفوظ:", df_students['اسم التلميذ'].unique() if 'اسم التلميذ' in df_students.columns else df_students.iloc[:,1].unique())
+        search_name = st.selectbox("اختر اسم التلميذ(ة):", df_students['اسم التلميذ'].unique() if 'اسم التلميذ' in df_students.columns else df_students.iloc[:,1].unique())
         student_history = df_reports[df_reports['الاسم'] == search_name]
-        if not student_history.empty:
-            st.dataframe(student_history, use_container_width=True)
-        else:
-            st.info("لا توجد إرسالات مسجلة لهذا التلميذ حتى الآن.")
+        if not student_history.empty: st.dataframe(student_history, use_container_width=True)
+        else: st.info("لا توجد إرسالات مسجلة لهذا التلميذ حتى الآن.")
 
     with tab4:
         st.markdown("### ⚙️ إعدادات الصيانة والأمان")
-        if st.button("تصفير سجل التقارير (حذف الكل)"):
-            st.warning("يرجى حذف الصفوف يدوياً من ملف Google Sheets حالياً لضمان الأمان الفائق للملفات.")
+        if st.button("تصفير سجل التقارير (حذف الكل)"): st.warning("يرجى حذف الصفوف يدوياً من ملف Google Sheets.")
 
-# --- 4. واجهة التلميذ الاحترافية مع تصحيح المتغير بالكامل ---
+# --- 4. واجهة التلميذ الاحترافية ---
 def student_space(df_students, df_lessons):
     st.markdown("""
-        <div style='background: linear-gradient(135deg, #10b981 0%, #1e3a8a 100%); padding: 35px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);'>
+        <div style='background: linear-gradient(135deg, #10b981 0%, #1e3a8a 100%); padding: 35px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center;'>
             <h2 style='color: #ffffff !important; margin: 0; font-size: 2.2rem; font-weight: bold;'>🇲🇦 الفضاء الرقمي للتلميذات والتلاميذ</h2>
             <p style='color: #e2e8f0; margin-top: 8px; font-size: 1.1rem;'>منصة التدقيق الفوري للدفاتر المدرسية لضمان التميز الأكاديمي والتحصيل المستمر</p>
-            <div style='margin-top: 15px; font-size: 0.9rem; background: rgba(255,255,255,0.15); padding: 8px 15px; border-radius: 20px; display: inline-block;'>
-                ⚠️ <b>تنبيه أمني هام:</b> يرجى تصوير دفترك الشخصي والخاص فقط. المنصة مزودة برادار ذكي لكشف تكرار وتطابق الصور.
-            </div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -265,78 +262,65 @@ def student_space(df_students, df_lessons):
 
     if not st.session_state.auth:
         st.markdown("### 🔑 تسجيل الدخول لمنظومة التدقيق")
-        with st.container():
-            c1, c2 = st.columns(2)
-            sel_class = c1.selectbox("الرجاء تحديد القسم:", ["---"] + df_students[col_class].unique().tolist())
-            
-            names = df_students[df_students[col_class] == sel_class][col_name].tolist() if sel_class != "---" else []
-            sel_name = c2.selectbox("الرجاء اختيار اسمك الكامل:", ["---"] + names)
-            pwd = st.text_input("أدخل القن السري الخاص بك (رقم مسار):", type="password")
-            
-            if st.button("الولوج الآمن للمنصة 🚀", use_container_width=True):
-                if sel_name != "---" and pwd.strip() != "":
-                    real_pwd = df_students[df_students[col_name] == sel_name][col_id].values[0]
-                    if str(pwd).strip().upper() == str(real_pwd).strip().upper():
-                        st.session_state.auth = True
-                        st.session_state.user = {"name": sel_name, "class": sel_class}
-                        st.rerun()
-                    else:
-                        st.error("❌ القن السري (رقم مسار) غير صحيح، يرجى إعادة التثبت.")
-                else:
-                    st.warning("المرجو تعبئة كافة الحقول المطلوبة لتوثيق الهوية.")
+        c1, c2 = st.columns(2)
+        sel_class = c1.selectbox("الرجاء تحديد القسم:", ["---"] + df_students[col_class].unique().tolist())
+        names = df_students[df_students[col_class] == sel_class][col_name].tolist() if sel_class != "---" else []
+        sel_name = c2.selectbox("الرجاء اختيار اسمك الكامل:", ["---"] + names)
+        pwd = st.text_input("أدخل القن السري الخاص بك (رقم مسار):", type="password")
+        
+        if st.button("الولوج الآمن للمنصة 🚀", use_container_width=True):
+            if sel_name != "---" and pwd.strip() != "":
+                real_pwd = df_students[df_students[col_name] == sel_name][col_id].values[0]
+                if str(pwd).strip().upper() == str(real_pwd).strip().upper():
+                    st.session_state.auth = True
+                    st.session_state.user = {"name": sel_name, "class": sel_class}
+                    st.rerun()
+                else: st.error("❌ القن السري غير صحيح.")
+            else: st.warning("المرجو تعبئة كافة الحقول.")
                     
     else:
         st.success(f"🏫 مرحباً بك: {st.session_state.user['name']} | القسم الفعلي: {st.session_state.user['class']}")
-        
         lesson_tabs = st.tabs(["📘 المجزوءة / الدرس 1", "📗 المجزوءة / الدرس 2", "📙 المجزوءة / الدرس 3"])
         
         for i, tab in enumerate(lesson_tabs):
             with tab:
                 l_name = f"الدرس {i+1}"
                 st.markdown(f"#### 📸 مركز رفع صور دفتر مادة الرياضيات - {l_name}")
-                st.write("الرجاء التقاط صور واضحة لجميع صفحات الدفتر المرتبطة بهذا الدرس ورفعها دفعة واحدة:")
+                
+                saved_lesson_reference = get_lesson_ref(l_name, df_lessons)
+                
+                # إذا كان هناك رابط مسبق للـ PDF مرفوع من طرف الأستاذ، نعرضه للتلميذ للمراجعة والتحميل
+                if "🔗 رابط ملف الدرس المرجعي الثابت" in saved_lesson_reference:
+                    st.markdown("### 📋 الملف المرجعي المعتمد من الأستاذ:")
+                    st.success("الملف المرجعي لهذا الدرس متاح ومحفوظ في السحاب بشكل دائم.")
                 
                 up_files = st.file_uploader(f"اختر صور صفحات الدفتر لـ {l_name}", accept_multiple_files=True, key=f"up_{l_name}", type=['jpg','jpeg','png'])
                 
                 if st.button(f"بدء المعالجة والتدقيق الفوري لـ {l_name}", key=f"btn_{l_name}"):
                     if up_files:
-                        with st.spinner("🔄 جاري سحب المرجع التربوي السحابي وفحص بصمة الدفتر ومطابقة الحلول..."):
-                            
-                            saved_lesson_reference = get_lesson_ref(l_name, df_lessons)
-                            
+                        with st.spinner("🔄 جاري سحب المرجع التربوي السحابي الثابت وفحص الدفتر..."):
                             prompt_instructions = f"""
                             أنت مساعد أستاذ رياضيات عبقري ومراقب صارم جداً مكلف بكشف الغش والنسخ وتدقيق الدفاتر. 
                             التلميذ {st.session_state.user['name']} (القسم: {st.session_state.user['class']}) أرسل صور دفتره لدرس ({l_name}).
 
-                            المرجع الأساسي المعتمد لهذا الدرس والمرفوع من طرف الأستاذ هو:
+                            المرجع الأساسي المعتمد لهذا الدرس والمرفوع من طرف الأستاذ (ويشمل الملاحظات ورابط ملف الـ PDF الأصلي الثابت للرجوع إليه) هو:
                             \"\"\"{saved_lesson_reference}\"\"\"
 
                             المهام والقيود الإلزامية المطلوبة منك أثناء التدقيق والتفتيش (ركز بدقة عالية):
+                            1. منع الغش وتطابق الدفاتر بصرياً وبنيوياً.
+                            2. التدقيق عنواناً بعنوان وفقرة بفقرة بناءً على عناصر المرجع المذكور أعلاه.
+                            3. تدقيق حلول التمارين التطبيقية وتصحيحها كاملة ومقارنتها بالدرس المرجعي.
 
-                            1. **منع الغش وتطابق الدفاتر (حاسم جداً):**
-                               - يمنع منعاً باتاً أن يقوم تلاميذ مختلفون بإرسال نفس الصور أو نفس الدفتر لسرقة مجهود غيرهم. 
-                               - حلل بدقة "بصمة الدفتر البصرية" (نوع خط التلميذ، أسلوب التسطير وهندسة الدفتر، شكل وحواف الأوراق، لون الطاولة أو خلفية الصورة، وزاوية الإضاءة وظلال الهاتف الملقاة). 
-                               - كل صورة أرسلها التلميذ يجب أن تكون فريدة تماماً ومختلفة عن الأخرى. إذا كان هناك تكرار لنفس الصورة في نفس الإرسال أو تشابه مريب مع دفاتر تلاميذ آخرين في نفس القسم، ضع تحذيراً باللون الأحمر الداكن في بداية التقرير مكتوب فيه بشكل بارز: "⚠️ تنبيه خطير: اشتباه قوي جداً في غش ونسخ دفتر تلميذ آخر!".
-
-                            2. **التدقيق عنواناً بعنوان وفقرة بفقرة:**
-                               - تتبع الصور المرسلة ورقة بورقة وعنواناً بعنوان بناءً على المرجع الأساسي المكتوب أعلاه. تأكد من أن التلميذ نقل جميع العناوين والتعاريف والخاصيات الرياضية (Propriétés) والرموز والمصطلحات المقررة في الدرس.
-
-                            3. **تدقيق حلول التمارين التطبيقية وتصحيحها كاملة:**
-                               - تحقق من وجود كل تمرين تطبيقي أو مثال (Exemples / Applications) ورد في المرجع أعلاه.
-                               - بما أن مرجع الأستاذ يحتوي على نص التمارين التطبيقية فقط دون حلول جاهزة، يجب عليك (بصفتك خبيراً رياضياً) أن تقوم أولاً بحل التمرين ذهنياً خطوة بخطوة، ثم تتأكد بدقة أن التلميذ قد كتب "التصحيح والحل كاملاً ومقنعاً وبصيغة رياضية صحيحة" داخل الدفتر بخط يده. إذا قام بنقل نص التمرين فقط دون إدراج حله المتكامل, فاعتبر الفقرة ناقصة.
-                            
                             أعط تقريراً منظماً وبليغاً باللغة العربية كالتالي:
-                            - 🚨 **حالة الأمان ومكافحة الغش:** (تقرير صريح وحازم حول أصلية الدفتر وعدم تكراره)
-                            - 📊 **نسبة اكتمال الدرس الإجمالية:** (من 100%)
-                            - 📝 **جرد الفقرات والعناوين المكتوبة:** (العناوين المستوفاة والفقرات والتعاريف الناقصة بالترتيب)
-                            - 🧮 **وضعية التمارين التطبيقية وتصحيحها المتكامل:** (تقييم كتابة حلول التمارين ومدى صحتها الرياضية والخطوات المتبعة)
-                            - 🎨 **ملاحظة التنظيم والترتيب الهيكلي للدفتر:** (تقييم الخط واستعمال الألوان المناسبة للوضوح والترتيب)
+                            - 🚨 حالة الأمان ومكافحة الغش:
+                            - 📊 نسبة اكتمال الدرس الإجمالية:
+                            - 📝 جرد الفقرات والعناوين المكتوبة والناقصة:
+                            - 🧮 وضعية التمارين التطبيقية وتصحيحها المتكامل:
+                            - 🎨 ملاحظة التنظيم والترتيب الهيكلي للدفتر:
                             """
                             
                             model = genai.GenerativeModel("gemini-2.5-flash")
                             imgs = [Image.open(f) for f in up_files]
-                            
-                            # تم إصلاح الخطأ البرمجي هنا لتمرير المتغيّر الصحيح imgs
                             res = model.generate_content([prompt_instructions, *imgs])
                             
                             client = get_gspread_client()
@@ -345,26 +329,21 @@ def student_space(df_students, df_lessons):
                             
                             st.markdown("### 📋 تقرير الوزارة الرقمي لتدقيق الدفتر المستلم")
                             st.info(res.text)
-                            st.success("تمت مزامنة وتسجيل البيانات وحفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
-                    else:
-                        st.warning("⚠️ المرجو تزويد المنصة بصور الدفتر أولاً للبدء.")
+                            st.success("تم حفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
+                    else: st.warning("⚠️ المرجو تزويد المنصة بصور الدفتر أولاً.")
 
-# --- 5. منطق توزيع وتوجيه مسارات العرض والتحكم ---
+# --- 5. منطق توزيع مسارات العرض ---
 if st.session_state.role == "student":
     student_space(df_students, df_lessons)
-    
 elif st.session_state.role == "admin":
     if not st.session_state.auth:
-        st.markdown("<h3 style='color: #1e3a8a;'>🔑 فضاء الأستاذ والإدارة التربوية</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #1e3a8a;'>🔑 فضاء الأستاذ والإدارة التربوية</h3>")
         admin_pwd = st.text_input("الرجاء إدخال كلمة سر الولوج الإدارية المخصصة:", type="password")
-        
-        if st.button("تأكيد الهوية وتفعيل الصلاحيات 👨‍🏫", use_container_width=True):
+        if st.button("تأكيد الهوية 👨‍🏫", use_container_width=True):
             if admin_pwd == "1234":
                 st.session_state.auth = True
                 st.session_state.user = {"name": "الأستاذ عبد الباسط المنصوري"}
-                st.success("مرحباً بك مجدداً يا أستاذ! تم تحديث الصلاحيات الشاملة بنجاح.")
+                st.success("مرحباً بك يا أستاذ!")
                 st.rerun()
-            else:
-                st.error("❌ رمز المرور الإداري غير صحيح، يرجى المحاولة مرة أخرى.")
-    else:
-        admin_space(df_students, df_reports, df_lessons)
+            else: st.error("❌ رمز المرور الإداري غير صحيح.")
+    else: admin_space(df_students, df_reports, df_lessons)
