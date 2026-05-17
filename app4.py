@@ -257,7 +257,197 @@ def admin_space(df_students, df_reports, df_lessons):
         current_ref = get_lesson_ref(lesson_choice, df_lessons)
         st.info(f"📋 المرجع الحالي المحفوظ سحابياً للدرس:\n\n{current_ref}")
         
-        uploaded_ref_file = st.file_uploader("📸 📤 ارفع ملف الدرس المرجعي الرسمي (صيغة PDF للحفظ الدائم):", type=['pdf', 'jpg', 'jpeg', 'png'], key="admin_file_uploader")
+        uploaded_ref_file = st.file_uploader(f"📸 📤 ارفع ملف الدرس المرجعي الرسمي (صيغة PDF للحفظ الدائم):", type=['pdf', 'jpg', 'jpeg', 'png'], key="admin_file_uploader")
         ref_note = st.text_area("أدخل عناصر الدرس الأساسية أو التوجيهات المكتوبة للذكاء الاصطناعي:", height=120, value=current_ref if "لا توجد ملاحظات" not in current_ref else "")
-        
+
         col_btn1, col_btn2 = st.columns(2)
+        
+        if col_btn1.button("💾 حفظ ونشر الدرس في المنصة بشكل دائم", use_container_width=True):
+            with st.spinner("جاري تأمين وحفظ الملف سحابياً في المجلد المخصص..."):
+                drive_link = ""
+                if uploaded_ref_file is not None:
+                    file_bytes = uploaded_ref_file.read()
+                    drive_link = upload_pdf_to_drive(f"{lesson_choice}_{uploaded_ref_file.name}", file_bytes)
+                
+                if drive_link:
+                    full_reference_text = f"{ref_note}\n\n🔗 رابط ملف الدرس المرجعي الثابت in Google Drive:\n{drive_link}"
+                else:
+                    full_reference_text = ref_note
+                
+                # تحديث ورقة العمل في خطوة واحدة آمنة
+                for attempt in range(3):
+                    try:
+                        client = get_gspread_client()
+                        sh = client.open("les classes")
+                        ws_lessons = sh.worksheet("Lessons")
+                        
+                        all_vals = ws_lessons.get_all_values()
+                        if not all_vals:
+                            ws_lessons.append_row(["الدرس", "الملاحظات_المرجعية", "تاريخ_التحديث"])
+                            all_vals = [["الدرس", "الملاحظات_المرجعية", "تاريخ_التحديث"]]
+                        
+                        headers = all_vals[0]
+                        rows = all_vals[1:]
+                        
+                        updated = False
+                        for row in rows:
+                            if row and row[0] == lesson_choice:
+                                row[1] = full_reference_text
+                                row[2] = datetime.now().strftime("%Y-%m-%d %H:%M")
+                                updated = True
+                                break
+                        
+                        if not updated:
+                            rows.append([lesson_choice, full_reference_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
+                        
+                        ws_lessons.clear()
+                        ws_lessons.update([headers] + rows)
+                        st.success(f"🎉 تم الحفظ والنشر في حساب الـ Drive والإكسيل بسلام تام!")
+                        break
+                    except Exception as ex:
+                        if attempt == 2:
+                            st.error(f"خطأ أثناء تحديث سجل المراجع في الإكسيل: {ex}")
+                        time.sleep(2)
+                st.rerun()
+                
+        if col_btn2.button("🗑️ حذف ملف الدرس الحالي (تصفير المرجع)", use_container_width=True):
+            with st.spinner("جاري إزالة المرجع..."):
+                try:
+                    client = get_gspread_client()
+                    sh = client.open("les classes")
+                    ws_lessons = sh.worksheet("Lessons")
+                    
+                    all_vals = ws_lessons.get_all_values()
+                    if all_vals:
+                        headers = all_vals[0]
+                        rows = all_vals[1:]
+                        for row in rows:
+                            if row and row[0] == lesson_choice:
+                                row[1] = "لا توجد ملاحظات مرجعية حالياً"
+                                row[2] = ""
+                                break
+                        ws_lessons.clear()
+                        ws_lessons.update([headers] + rows)
+                    st.success("تم حذف المرجع بنجاح.")
+                except Exception as ex:
+                    st.error(f"عذراً، فشل الحذف: {ex}")
+                st.rerun()
+
+    with tab3:
+        st.markdown("### 👥 تتبع السجل الأكاديمي للتلاميذ")
+        if not df_students.empty:
+            col_search = 'اسم التلميذ' if 'اسم التلميذ' in df_students.columns else (df_students.columns[1] if len(df_students.columns) > 1 else None)
+            if col_search and col_search in df_students.columns:
+                search_name = st.selectbox("اختر اسم التلميذ(ة):", df_students[col_search].unique())
+                student_history = df_reports[df_reports['الاسم'] == search_name] if not df_reports.empty and 'الاسم' in df_reports.columns else pd.DataFrame()
+                if not student_history.empty: st.dataframe(student_history, use_container_width=True)
+                else: st.info("لا توجد إرسالات مسجلة لهذا التلميذ حتى الآن.")
+        else:
+            st.warning("جدول التلاميذ فارغ أو تعذر الاتصال به مؤقتاً.")
+
+    with tab4:
+        st.markdown("### ⚙️ إعدادات الصيانة والأمان")
+        if st.button("تصفير سجل التقارير (حذف الكل)"): st.warning("يرجى حذف الصفوف يدوياً من ملف Google Sheets.")
+
+# --- 4. واجهة التلميذ الاحترافية ---
+def student_space(df_students, df_lessons):
+    st.markdown("""
+        <div style='background: linear-gradient(135deg, #10b981 0%, #1e3a8a 100%); padding: 35px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center;'>
+            <h2 style='color: #ffffff !important; margin: 0; font-size: 2.2rem; font-weight: bold;'>🇲🇦 الفضاء الرقمي للتلميذات والتلاميذ</h2>
+            <p style='color: #e2e8f0; margin-top: 8px; font-size: 1.1rem;'>منصة التدقيق الفوري للدفاتر المدرسية لضمان التميز الأكاديمي والتحصيل المستمر</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if df_students.empty:
+        st.warning("🔄 المنصة تقوم بتهدئة الاتصال مع خوادم جوجل حالياً، يرجى الانتظار لثوانٍ قليلة.")
+        return
+
+    # تنظيف مسميات الأعمدة لضمان التوافق التام
+    df_students.columns = df_students.columns.str.strip()
+    col_class = 'القسم' if 'القسم' in df_students.columns else None
+    col_name = 'اسم التلميذ' if 'اسم التلميذ' in df_students.columns else None
+    col_id = 'رقم التلميذ' if 'رقم التلميذ' in df_students.columns else None
+
+    if not col_class or not col_name or not col_id:
+        st.error(f"⚠️ خطأ في بنية الملف السحابي للإكسيل. يرجى مراجعة عناوين الأعمدة.")
+        return
+
+    if not st.session_state.auth:
+        st.markdown("### 🔑 تسجيل الدخول لمنظومة التدقيق")
+        c1, c2 = st.columns(2)
+        sel_class = c1.selectbox("الرجاء تحديد القسم:", ["---"] + df_students[col_class].unique().tolist())
+        names = df_students[df_students[col_class] == sel_class][col_name].tolist() if sel_class != "---" else []
+        sel_name = c2.selectbox("الرجاء اختيار اسمك الكامل:", ["---"] + names)
+        pwd = st.text_input("أدخل القن السري الخاص بك (رقم مسار):", type="password")
+        
+        if st.button("الولوج الآمن للمنصة 🚀", use_container_width=True):
+            if sel_name != "---" and pwd.strip() != "":
+                real_pwd = df_students[df_students[col_name] == sel_name][col_id].values[0]
+                if str(pwd).strip().upper() == str(real_pwd).strip().upper():
+                    st.session_state.auth = True
+                    st.session_state.user = {"name": sel_name, "class": sel_class}
+                    st.rerun()
+                else: st.error("❌ القن السري غير صحيح.")
+            else: st.warning("المرجو تعبئة كافة الحقول.")
+                    
+    else:
+        st.success(f"🏫 مرحباً بك: {st.session_state.user['name']} | القسم الفعلي: {st.session_state.user['class']}")
+        lesson_tabs = st.tabs(["📘 المجزوءة / الدرس 1", "📗 المجزوءة / الدرس 2", "📙 المجزوءة / الدرس 3"])
+        
+        for i, tab in enumerate(lesson_tabs):
+            with tab:
+                l_name = f"الدرس {i+1}"
+                st.markdown(f"#### 📸 مركز رفع صور دفتر مادة الرياضيات - {l_name}")
+                
+                saved_lesson_reference = get_lesson_ref(l_name, df_lessons)
+                
+                if "🔗 رابط ملف الدرس المرجعي الثابت" in saved_lesson_reference:
+                    st.markdown("### 📋 الملف المرجعي المعتمد من الأستاذ:")
+                    st.success("الملف المرجعي لهذا الدرس متاح ومحفوظ في السحاب بشكل دائم.")
+                
+                up_files = st.file_uploader(f"اختر صور صفحات الدفتر لـ {l_name}", accept_multiple_files=True, key=f"up_{l_name}", type=['jpg','jpeg','png'])
+                
+                if st.button(f"بدء المعالجة والتدقيق الفوري لـ {l_name}", key=f"btn_{l_name}"):
+                    if up_files:
+                        with st.spinner("🔄 جاري سحب المرجع التربوي السحابي الثابت وفحص الدفتر..."):
+                            prompt_instructions = f"""
+                            أنت مساعد أستاذ رياضيات عبقري ومراقب صارم جداً مكلف بكشف الغش والنسخ وتدقيق الدفاتر. 
+                            التلميذ {st.session_state.user['name']} (القسم: {st.session_state.user['class']}) أرسل صور دفتره لدرس ({l_name}).
+
+                            المرجع الأساسي المعتمد لهذا الدرس والمرفوع من طرف الأستاذ هو:
+                            \"\"\"{saved_lesson_reference}\"\"\"
+
+                            المهام والقيود الإلزامية المطلوبة منك أثناء التدقيق والتفتيش:
+                            1. منع الغش وتطابق الدفاتر بصرياً وبنيوياً.
+                            2. التدقيق عنواناً بعنوان وفقرة بفقرة بناءً على عناصر المرجع المذكور أعلاه.
+                            3. مفارنة التمارين التطبيقة مع الدرس المرجعي والتأكد من حلول التمارين التطبيقية كاملة رغم عدم وجودها بالدرس المرجعي.  
+                            """
+                            
+                            model = genai.GenerativeModel("gemini-2.5-flash")
+                            imgs = [Image.open(f) for f in up_files]
+                            res = model.generate_content([prompt_instructions, *imgs])
+                            
+                            client = get_gspread_client()
+                            sh = client.open("les classes").worksheet("Reports")
+                            sh.append_row([datetime.now().strftime("%Y-%m-%d"), st.session_state.user['name'], st.session_state.user['class'], l_name, res.text, "تم التدقيق بنجاح"])
+                            
+                            st.markdown("### 📋 تقرير الوزارة الرقمي لتدقيق الدفتر المستلم")
+                            st.info(res.text)
+                            st.success("تم حفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
+                    else: st.warning("⚠️ المرجو تزويد المنصة بصور الدفتر أولاً.")
+
+# --- 5. منطق توزيع مسارات العرض ---
+if st.session_state.role == "student":
+    student_space(df_students, df_lessons)
+elif st.session_state.role == "admin":
+    if not st.session_state.auth:
+        st.markdown("<h3 style='color: #1e3a8a;'>🔑 فضاء الأستاذ والإدارة التربوية</h3>")
+        admin_pwd = st.text_input("الرجاء إدخال كلمة سر الولوج الإدارية المخصصة:", type="password")
+        if st.button("تأكيد الهوية 👨‍🏫", use_container_width=True):
+            if admin_pwd == "1234":
+                st.session_state.auth = True
+                st.session_state.user = {"name": "الأستاذ عبد الباسط المنصوري"}
+                st.success("مرحباً بك يا أستاذ!")
+                st.rerun()
+            else: st.error("❌ رمز المرور الإداري غير صحيح.")
+    else: admin_space(df_students, df_reports, df_lessons)
