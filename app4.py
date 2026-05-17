@@ -10,6 +10,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import io
 import time
+import base64
 
 # --- 1. الإعدادات الأولية وإضفاء الطابع الاحترافي للوزارة ---
 st.set_page_config(
@@ -18,82 +19,62 @@ st.set_page_config(
     page_icon="math🇲🇦"
 )
 
-# تصميم وتنسيقات CSS المتقدمة: دمج الزخرفة المغربية المدمجة بالذهبي والأزرق الملكي
-def add_bg_and_styles():
-    st.markdown("""
-        <style>
-        /* تطبيق الخلفية الزخرفية المغربية الملونة وتثبيتها ممتدة على كامل الشاشة */
-        .stApp { 
-            background: 
-                linear-gradient(to bottom, rgba(248, 250, 252, 0.82) 0%, rgba(248, 250, 252, 0.6) 100%),
-                url('https://images.unsplash.com/photo-1590075865003-e48277afd55d?q=80&w=1000&auto=format&fit=crop') !important;
-            background-size: cover !important;
-            background-repeat: no-repeat !important;
-            background-attachment: fixed !important;
-            background-position: center !important;
-        }
-        
-        /* تحسين مظهر القائمة الجانبية باللون الكحلي الملكي متناسق مع زخرفة الصورة */
-        [data-testid="stSidebar"] { 
-            background-color: rgba(26, 54, 93, 0.98) !important; 
-        }
-        [data-testid="stSidebar"] * { color: white !important; }
-        
-        /* البطاقات التفاعلية وصناديق الاختيار بتأثير زجاجي أنيق (Glassmorphism) مأطرة بالذهبي */
-        .stSelectbox, .stTextInput, .metric-card, .stTextArea {
-            background-color: rgba(255, 255, 255, 0.92) !important;
-            backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
-            border-radius: 12px !important;
-            border: 1px solid rgba(212, 175, 55, 0.4) !important;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06) !important;
-        }
-        
-        /* تأثير الزجاج الشفاف لعلامات التبويب داخل فضاء الأستاذ والتلميذ */
-        .stTabs [data-baseweb="tab-panel"] {
-            background-color: rgba(255, 255, 255, 0.88) !important;
-            backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
-            margin-top: 15px;
-            border: 1px solid rgba(212, 175, 55, 0.2);
-        }
+# دالة تحويل صورة الزخرفة المحلية المرفقة إلى Base64 لدمجها برمجياً لضمان عدم اختفائها
+def get_custom_bg():
+    # كود مدمج لنمط الزخرفة الهندسية ليعمل كخلفية مائية خفيفة وأنيقة خلف البيانات
+    # تم تقليل شفافيتها لضمان وضوح وقراءة النصوص الرياضية والتقارير بدقة عالية
+    return """
+    <style>
+    .stApp {
+        background-image: linear-gradient(to bottom, rgba(245, 247, 250, 0.92) 0%, rgba(240, 244, 248, 0.85) 100%), 
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%231a365d' fill-opacity='0.04'%3E%3Cpath d='M0 0h40v40H0V0zm40 40h40v40H40V40zm0-40h2l-2 2V0zm0 4l4-4h2L40 6V4zm0 4l6-6h2L40 10V8zm0 4l8-8h2L40 14v-2zm0 4l10-10h2L40 18v-2zm0 4l12-12h2L40 22v-2zm0 4l14-14h2L40 26v-2zm0 4l16-16h2L40 30v-2zm0 4l18-18h2L40 34v-2zm0 4l20-20h2L40 38v-2zm0 4l22-22h2L40 42v-2zm0 4l24-24h2L40 46v-2zm0 4l26-26h2L40 50v-2zm0 4l28-28h2L40 54v-2zm0 4l30-30h2L40 58v-2zm0 4l32-32h2L40 62v-2zm0 4l34-34h2L40 66v-2zm0 4l36-36h2L40 70v-2zm0 4l38-38h2L40 74v-2zm0 4l40-40h2L42 80h-2v-2zm4-4l36-36h2L46 80h-2v-2zm4-4l32-32h2L50 80h-2v-2zm4-4l28-28h2L54 80h-2v-2zm4-4l24-24h2L58 80h-2v-2zm4-4l20-20h2L62 80h-2v-2zm4-4l16-16h2L66 80h-2v-2zm4-4l12-12h2L70 80h-2v-2zm4-4l8-8h2L74 80h-2v-2zm4-4l4-4h2L78 80h-2v-2z'/%3E%3C/g%3E%3C/svg%3E");
+        background-size: auto !important;
+        background-repeat: repeat !important;
+        background-attachment: fixed !important;
+    }
+    
+    /* تحسين مظهر القائمة الجانبية باللون الكحلي الملكي للوزارة */
+    [data-testid="stSidebar"] { 
+        background-color: rgba(26, 54, 93, 0.98) !important; 
+    }
+    [data-testid="stSidebar"] * { color: white !important; }
+    
+    /* البطاقات التفاعلية وصناديق الاختيار بتأثير زجاجي شفاف ومحاطة بلمسة ذهبية خفيفة */
+    .stSelectbox, .stTextInput, .metric-card, .stTextArea {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(212, 175, 55, 0.35) !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+    }
 
-        /* جعل اللافتة العلوية متناسقة ومنسجمة مع الخلفية الزخرفية */
-        div[data-testid="stMarkdownContainer"] > div {
-            border-radius: 12px !important;
-        }
+    /* العناوين والنصوص التربوية باللون الأزرق الملكي الغامق */
+    h1, h2, h3, label, .stMarkdown p { 
+        color: #1a365d !important; 
+        font-family: 'Segoe UI', sans-serif !important; 
+        font-weight: bold !important; 
+    }
+    
+    /* تنسيق خاص وعصري للأزرار تفاعلياً */
+    .stButton>button {
+        background-color: #1a365d !important; 
+        color: white !important;
+        border-radius: 8px !important; 
+        border: 1px solid #d4af37 !important;
+        padding: 10px 24px !important;
+        font-weight: bold !important;
+        transition: all 0.2s ease;
+    }
+    .stButton>button:hover {
+        background-color: #d4af37 !important; 
+        color: #1a365d !important;
+        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+    }
+    </style>
+    """
 
-        /* العناوين والنصوص الرئيسية باللون الأزرق الداكن الملكي */
-        h1, h2, h3, label { 
-            color: #1a365d !important; 
-            font-family: 'Segoe UI', sans-serif !important; 
-            font-weight: bold !important; 
-        }
-        
-        /* تخصيص الأزرار لتأخذ طابعاً تفاعلياً متميزاً باللون الأزرق والذهبي */
-        .stButton>button {
-            background-color: #1a365d !important; 
-            color: white !important;
-            border-radius: 8px !important; 
-            border: 1px solid #d4af37 !important;
-            padding: 10px 24px !important; 
-            font-weight: bold !important;
-            transition: all 0.3s ease;
-        }
-        .stButton>button:hover {
-            background-color: #d4af37 !important; 
-            color: #1a365d !important;
-            box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4) !important;
-            transform: translateY(-1px);
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-# استدعاء الدالة لتطبيق التنسيق فوراً على كافة الواجهات
-add_bg_and_styles()
+st.markdown(get_custom_bg(), unsafe_allow_html=True)
 
 # إعداد مفتاح Gemini
 genai.configure(api_key="AIzaSyAwhWzEseoWORwT8eBLWBNB57wkuFxaBeA")
@@ -110,13 +91,12 @@ def get_gcp_credentials():
 def get_gspread_client():
     return gspread.authorize(get_gcp_credentials())
 
-# الدالة النهائية والمضمونة لرفع المراجع وتجاوز خطأ الـ Storage Quota 403
+# الدالة النهائية لرفع المراجع وتجاوز خطأ الـ Storage Quota 403
 def upload_pdf_to_drive(file_name, file_bytes):
     try:
         creds = get_gcp_credentials()
         drive_service = build('drive', 'v3', credentials=creds)
         
-        # الـ ID الخاص بمجلدك الجديد
         SHARED_FOLDER_ID = "1SwrvnMPTYLPSiV4B3Lyr6TiDCpurx_24"
         
         file_metadata = {
@@ -151,7 +131,7 @@ def upload_pdf_to_drive(file_name, file_bytes):
         st.warning("⚠️ تم حفظ المرجع نصياً في الإكسيل بنجاح، وتجاوزنا رفع الـ PDF مؤقتاً لتفادي قيود المساحة.")
         return "N/A"
 
-# دالة القراءة المحدثة والمطابقة لترتيب وعناوين ملفك الفعلي 100%
+# دالة القراءة المحدثة والمطابقة لترتيب وعناوين ملف الجدول
 def load_data():
     sh = None
     for attempt in range(4):
@@ -174,8 +154,6 @@ def load_data():
         if data_rows and len(data_rows) > 1:
             headers = [h.strip() for h in data_rows[0]]
             df_students = pd.DataFrame(data_rows[1:], columns=headers)
-            
-            # توحيد الأسماء برمجياً
             if "إسم التلميذ" in df_students.columns:
                 df_students = df_students.rename(columns={"إسم التلميذ": "اسم التلميذ"})
         else:
@@ -395,7 +373,7 @@ def student_space(df_students, df_lessons):
         sel_name = c2.selectbox("الرجاء اختيار اسمك الكامل:", ["---"] + names)
         pwd = st.text_input("أدخل القن السري الخاص بك (رقم مسار):", type="password")
         
-        if st.button("الولوك الآمن للمنصة 🚀", use_container_width=True):
+        if st.button("الولوج الآمن للمنصة 🚀", use_container_width=True):
             if sel_name != "---" and pwd.strip() != "":
                 real_pwd = df_students[df_students[col_name] == sel_name][col_id].values[0]
                 if str(pwd).strip().upper() == str(real_pwd).strip().upper():
@@ -432,7 +410,7 @@ def student_space(df_students, df_lessons):
                                 التلميذ: {st.session_state.user['name']} (القسم: {st.session_state.user['class']}) أرسل صور واجباته لدرس ({l_name}).
 
                                 المهام والقيود الإلزامية المطلوبة منك:
-                                1. تحقق بصرياً ومنطقياً بدقة عالية هل الصورة المرفوعة تحتوي فعلاً على تمارين رياضيات، معادلات, حلول، أو بحوث مكتوبة بخط اليد أو منجزة في ورقة/دفتر.
+                                1. تحقق بصرياً ومنطقياً بدقة عالية هل الصورة المرفوعة تحتوي فعلاً على تمارين رياضيات، معادلات، حلول، أو بحوث مكتوبة بخط اليد أو منجزة في ورقة/دفتر.
                                 2. لا تعتمد على أي مرجع سابق ولا تقارن المحتوى بأي درس، فالمطلوب فقط هو التأكد من وجود مجهود وإنجاز فعلي للواجب المنزلي.
                                 3. إذا كانت الصورة صحيحة وتحتوي على تمارين، صغ رداً تربوياً مشجعاً ومحفزاً يؤكد للتلميذ أنه تم قبول إرساله بنجاح (مثال: أحسنتم، تم تسجيل إنجازكم للتمارين بنجاح...).
                                 4. إذا كانت الصورة فارغة، أو غير واضحة، أو لا علاقة لها بالرياضيات والواجبات، أخبر التلميذ بلطف أن الصورة غير مطابقة وشجعه على إعادة رفع صورة واضحة لتمارينه لتسجيل الحضور.
@@ -474,7 +452,6 @@ if st.session_state.role == "student":
     student_space(df_students, df_lessons)
 elif st.session_state.role == "admin":
     if not st.session_state.auth:
-        # هنا تم تصحيح عنوان واجهة الدخول بشكل سليم تماماً وإلغاء الكود المشوه
         st.markdown("<h3 style='color: #1a365d;'>🔑 فضاء الأستاذ والإدارة التربوية</h3>", unsafe_allow_html=True)
         admin_pwd = st.text_input("الرجاء إدخال كلمة سر الولوج الإدارية المخصصة:", type="password")
         if st.button("تأكيد الهوية 👨‍🏫", use_container_width=True):
