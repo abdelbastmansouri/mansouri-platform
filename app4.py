@@ -213,7 +213,7 @@ with st.sidebar:
 # --- 3. واجهة الأستاذ ---
 def admin_space(df_students, df_reports, df_lessons):
     st.markdown("""
-        <div style='background: linear-gradient(#E73E01, #1a365d 3%, #FD3F92 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; border: 1px solid #d4af37;'>
+        <div style='background: linear-gradient(#E73E01, #1a365d 7%, #FD3F92 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; border: 1px solid #05fcf0;'>
             <h1 style='color: ##05fcf0 !important; margin: 0; font-size: 2rem;'>👨‍🏫 الفضاء الرقمي للتدقيق الإداري والتربوي</h1>
             <p style='color: #cbd5e1; margin-top: 5px; font-size: 1rem;'>مرحباً بك يا أستاذ عبد الباسط المنصوري - تتبع ذكي ومقاومة شاملة لنسخ وتكرار دفاتر التلاميذ</p>
         </div>
