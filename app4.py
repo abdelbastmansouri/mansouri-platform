@@ -18,21 +18,49 @@ st.set_page_config(
     page_icon="🇲🇦"
 )
 
-# تصميم وتنسيقات CSS الوزارية
+# تصميم وتنسيقات CSS المتقدمة: دمج الزخرفة المغربية والتدرج الانسيابي والشفافية
 st.markdown("""
     <style>
-    .stApp { background-color: #f8fafc; }
-    [data-testid="stSidebar"] { background-color: #0f172a; color: white; }
+    /* إضافة الخلفية بالزخرفة المغربية مع التدرج الانسيابي من الأعلى */
+    .stApp { 
+        background: 
+            linear-gradient(to bottom, rgba(30, 58, 138, 0.95) 0%, rgba(248, 250, 252, 0.85) 20%, rgba(248, 250, 252, 0.4) 100%),
+            url('https://pub-c2a41d6361a74288b894ecbcf82b7b51.r2.dev/zelige_pattern.png');
+        background-size: contain;
+        background-repeat: repeat;
+        background-attachment: fixed;
+    }
+    
+    /* جعل القائمة الجانبية متميزة وثابتة */
+    [data-testid="stSidebar"] { 
+        background-color: rgba(15, 23, 42, 0.95) !important; 
+        color: white; 
+    }
     [data-testid="stSidebar"] * { color: white !important; }
+    
+    /* جعل بطاقات الإحصائيات والصناديق البيضاء شفافة وأنيقة لتظهر الخلفية من ورائها */
     .metric-card {
-        background-color: white;
+        background-color: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(5px);
         border-top: 4px solid #d97706;
         padding: 20px;
         border-radius: 10px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         text-align: center;
     }
+    
+    /* جعل خلفيات الـ Tabs شفافة أيضاً لتنسجم مع الزليج */
+    .stTabs [data-baseweb="tab-panel"] {
+        background-color: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(5px);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        margin-top: 10px;
+    }
+
     h1, h2, h3 { color: #1e3a8a !important; font-family: 'Segoe UI', sans-serif; font-weight: bold; }
+    
     .stButton>button {
         background-color: #1e3a8a !important; color: white !important;
         border-radius: 8px !important; border: none !important;
@@ -67,7 +95,6 @@ def upload_pdf_to_drive(file_name, file_bytes):
         creds = get_gcp_credentials()
         drive_service = build('drive', 'v3', credentials=creds)
         
-        # هنا تم وضع الـ ID النظيف والـمُستخلص من رابط مجلدك مباشرة لتفادي خطأ الـ 404
         SHARED_FOLDER_ID = "1spaiwyei-TgC18Mb6l34Kz4uJW-7O5Wz"
         
         file_metadata = {
@@ -226,7 +253,7 @@ def admin_space(df_students, df_reports, df_lessons):
                     drive_link = upload_pdf_to_drive(f"{lesson_choice}_{uploaded_ref_file.name}", file_bytes)
                 
                 if drive_link:
-                    full_reference_text = f"{ref_note}\n\n🔗 رابط ملف الدرس المرجعي الثابت في Google Drive:\n{drive_link}"
+                    full_reference_text = f"{ref_note}\n\n🔗 رابط ملف الدرس المرجعي الثابت in Google Drive:\n{drive_link}"
                 else:
                     full_reference_text = ref_note
                 
@@ -375,7 +402,7 @@ def student_space(df_students, df_lessons):
                             المهام والقيود الإلزامية المطلوبة منك أثناء التدقيق والتفتيش:
                             1. منع الغش وتطابق الدفاتر بصرياً وبنيوياً.
                             2. التدقيق عنواناً بعنوان وفقرة بفقرة بناءً على عناصر المرجع المذكور أعلاه.
-                            3. مفارنة التمارين التطبيقة مع الدرس المرجعي والتأكد من حلول التمارين التطبيقية كاملة رغم عدم وجودها بالدرس المرجعي.
+                            3. مفارنة التمارين التطبيقة مع الدرس المرجعي والتأكد من حلول التمارين التطبيقية كاملة رغم عدم وجودها بالدرس المرجعي.  
                             """
                             
                             model = genai.GenerativeModel("gemini-2.5-flash")
