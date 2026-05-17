@@ -15,19 +15,19 @@ import time
 st.set_page_config(
     page_title="منصة تدقيق الدفاتر - الأستاذ المنصوري", 
     layout="wide",
-    page_icon="🇲🇦"
+    page_icon="math🇲🇦"
 )
 
 # تصميم وتنسيقات CSS المتقدمة: دمج الزخرفة المغربية والتدرج الانسيابي والشفافية
 st.markdown("""
     <style>
-    /* إضافة الخلفية بالزخرفة المغربية مع التدرج الانسيابي من الأعلى */
+    /* خلفية متناسقة برابط مستقر للزليج المغربي */
     .stApp { 
         background: 
             linear-gradient(to bottom, rgba(30, 58, 138, 0.95) 0%, rgba(248, 250, 252, 0.85) 20%, rgba(248, 250, 252, 0.4) 100%),
-            url('https://pub-c2a41d6361a74288b894ecbcf82b7b51.r2.dev/zelige_pattern.png');
-        background-size: contain;
-        background-repeat: repeat;
+            url('https://images.unsplash.com/photo-1590075865003-e48277afd55d?q=80&w=1000&auto=format&fit=crop');
+        background-size: cover;
+        background-repeat: no-repeat;
         background-attachment: fixed;
     }
     
