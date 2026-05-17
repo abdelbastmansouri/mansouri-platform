@@ -53,7 +53,7 @@ if 'auth' not in st.session_state: st.session_state.auth = False
 if 'user' not in st.session_state: st.session_state.user = {}
 if 'role' not in st.session_state: st.session_state.role = None
 
-# دالة الربط مع خدمات جوجل بنظام المحاولات المتكررة الذكي تفادياً للحظر
+# دالة الربط مع خدمات جوجل
 def get_gcp_credentials():
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     return Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
@@ -61,7 +61,7 @@ def get_gcp_credentials():
 def get_gspread_client():
     return gspread.authorize(get_gcp_credentials())
 
-# دالة رفع ملف الـ PDF إلى الـ Google Drive
+# دالة مطورة ومحصنة لرفع الملفات الكبيرة (مثل ملف 2.7MB) بنظام الأجزاء تفادياً للانقطاع
 def upload_pdf_to_drive(file_name, file_bytes):
     try:
         creds = get_gcp_credentials()
@@ -73,37 +73,41 @@ def upload_pdf_to_drive(file_name, file_bytes):
         }
         
         fh = io.BytesIO(file_bytes)
-        media = MediaIoBaseUpload(fh, mimetype='application/pdf', resumable=True)
+        # استخدام chunksize مخصص للرفع التدريجي الآمن للملفات الكبيرة
+        media = MediaIoBaseUpload(fh, mimetype='application/pdf', chunksize=1024*1024, resumable=True)
         
-        uploaded_file = drive_service.files().create(
+        request = drive_service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id, webViewLink'
-        ).execute()
+        )
         
-        file_id = uploaded_file.get('id')
+        response = None
+        while response is None:
+            status, response = request.next_chunk()
+            
+        file_id = response.get('id')
         
+        # جعل الرابط متاحاً للقراءة لكل من يملكه لكي يفتحه التلاميذ والذكاء الاصطناعي
         user_permission = {'type': 'anyone', 'role': 'reader'}
         drive_service.permissions().create(fileId=file_id, body=user_permission).execute()
         
-        return uploaded_file.get('webViewLink')
+        return response.get('webViewLink')
     except Exception as e:
-        st.error(f"خطأ أثناء الرفع إلى Google Drive: {e}")
+        st.error(f"❌ تعذر الرفع إلى Google Drive. تفاصيل العائق الإداري: {str(e)}")
         return None
 
-# دالة قراءة البيانات المحصنة بالكامل مع ميزة التهدئة التلقائية (Anti-Rate Limit)
+# دالة قراءة البيانات
 def load_data():
-    # محاولة فتح الملف بمرونة مع منح جوجل ثانية للراحة إذا كان هناك ضغط
     for attempt in range(3):
         try:
             client = get_gspread_client()
             sh = client.open("les classes")
             break
-        except Exception as e:
+        except:
             if attempt == 2:
-                st.error("⚠️ خوادم جوجل مستحوذة حالياً بسبب كثرة التحديثات المتتالية. يرجى إعادة تحديث الصفحة بعد ثوانٍ قليلة.")
                 return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-            time.sleep(2) # انتظر ثانيتين ثم أعد المحاولة تلقائياً
+            time.sleep(2)
             
     # قراءة ورقة التلاميذ
     try:
@@ -196,7 +200,7 @@ def admin_space(df_students, df_reports, df_lessons):
             st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
-        st.markdown("### 📂 مركز إدارة المراجع السحابية الثابتة")
+        st.markdown("### 📂 centre d'administration")
         lesson_choice = st.selectbox("اختر الدرس المستهدف بالتحديث أو الإضافة:", ["الدرس 1", "الدرس 2", "الدرس 3"])
         
         current_ref = get_lesson_ref(lesson_choice, df_lessons)
@@ -219,7 +223,6 @@ def admin_space(df_students, df_reports, df_lessons):
                 else:
                     full_reference_text = ref_note
                 
-                # المعالجة السريعة عبر الـ Pandas والإرسال دفعة واحدة (طلب واحد فقط يحميك من الحظر)
                 client = get_gspread_client()
                 sh = client.open("les classes")
                 ws_lessons = sh.worksheet("Lessons")
@@ -243,7 +246,6 @@ def admin_space(df_students, df_reports, df_lessons):
                 if not updated:
                     rows.append([lesson_choice, full_reference_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
                 
-                # مسح وتحديث الصفحة بالكامل دفعة واحدة وبسرعة فائقة تفادياً للـ API Rate Limit
                 ws_lessons.clear()
                 ws_lessons.update([headers] + rows)
                 
@@ -296,7 +298,7 @@ def student_space(df_students, df_lessons):
     """, unsafe_allow_html=True)
     
     if df_students.empty:
-        st.warning("🔄 المنصة تقوم بتهدئة الاتصال مع خوادم جوجل حالياً، يرجى الضغط على زر التحديث أو الانتظار لثوانٍ قليلة.")
+        st.warning("🔄 المنصة تقوم بتهدئة الاتصال مع خوادم جوجل حالياً، يرجى الانتظار لثوانٍ قليلة.")
         return
 
     df_students.columns = df_students.columns.str.strip()
@@ -356,7 +358,7 @@ def student_space(df_students, df_lessons):
                             المهام والقيود الإلزامية المطلوبة منك أثناء التدقيق والتفتيش:
                             1. منع الغش وتطابق الدفاتر بصرياً وبنيوياً.
                             2. التدقيق عنواناً بعنوان وفقرة بفقرة بناءً على عناصر المرجع المذكور أعلاه.
-                            3. تدقيق حلول التمارين التطبيقية وتصحيحها كاملة.
+                            3. حلول التمارين التطبيقية كاملة ومقارنتها بالدرس المرجعي.
                             """
                             
                             model = genai.GenerativeModel("gemini-1.5-flash")
@@ -372,7 +374,7 @@ def student_space(df_students, df_lessons):
                             st.success("تم حفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
                     else: st.warning("⚠️ المرجو تزويد المنصة بصور الدفتر أولاً.")
 
-# --- 5. منطق توزيع مسارات العرض ---
+# --- 5. منظق توزيع مسارات العرض ---
 if st.session_state.role == "student":
     student_space(df_students, df_lessons)
 elif st.session_state.role == "admin":
