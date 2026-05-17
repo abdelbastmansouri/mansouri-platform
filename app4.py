@@ -257,5 +257,7 @@ def admin_space(df_students, df_reports, df_lessons):
         current_ref = get_lesson_ref(lesson_choice, df_lessons)
         st.info(f"📋 المرجع الحالي المحفوظ سحابياً للدرس:\n\n{current_ref}")
         
-        uploaded_ref_file = st.file_uploader(f"📸 📤 ارفع ملف الدرس المرجعي الرسمي (صيغة PDF للحفظ الدائم):", type=['pdf', 'jpg', 'jpeg', 'png'], key="admin_file_uploader")
-        ref_note = st.text_area("أدخل عناصر الدرس الأساسية أو التوجيه
+        uploaded_ref_file = st.file_uploader("📸 📤 ارفع ملف الدرس المرجعي الرسمي (صيغة PDF للحفظ الدائم):", type=['pdf', 'jpg', 'jpeg', 'png'], key="admin_file_uploader")
+        ref_note = st.text_area("أدخل عناصر الدرس الأساسية أو التوجيهات المكتوبة للذكاء الاصطناعي:", height=120, value=current_ref if "لا توجد ملاحظات" not in current_ref else "")
+        
+        col_btn1, col_btn2 = st.columns(2)
