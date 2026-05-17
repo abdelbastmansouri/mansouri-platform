@@ -18,17 +18,14 @@ st.set_page_config(
     page_icon="math🇲🇦"
 )
 
-# تصميم وتنسيقات CSS المتقدمة: دمج الزخرفة المغربية والتدرج الانسيابي والشفافية
-import base64
-
-# كود التنسيق الاحترافي مع دمج الخلفية المغربية الذهبية والزرقاء بشكل مدمج
+# تصميم وتنسيقات CSS المتقدمة: دمج الزخرفة المغربية المدمجة بالذهبي والأزرق الملكي
 def add_bg_and_styles():
     st.markdown("""
         <style>
-        /* تطبيق الخلفية الزخرفية وتثبيتها ممتدة على كامل الشاشة */
+        /* تطبيق الخلفية الزخرفية المغربية الملونة وتثبيتها ممتدة على كامل الشاشة */
         .stApp { 
             background: 
-                linear-gradient(to bottom, rgba(248, 250, 252, 0.75) 0%, rgba(248, 250, 252, 0.5) 100%),
+                linear-gradient(to bottom, rgba(248, 250, 252, 0.82) 0%, rgba(248, 250, 252, 0.6) 100%),
                 url('https://images.unsplash.com/photo-1590075865003-e48277afd55d?q=80&w=1000&auto=format&fit=crop') !important;
             background-size: cover !important;
             background-repeat: no-repeat !important;
@@ -36,37 +33,66 @@ def add_bg_and_styles():
             background-position: center !important;
         }
         
-        /* تحسين مظهر القائمة الجانبية باللون الكحلي الملكي */
+        /* تحسين مظهر القائمة الجانبية باللون الكحلي الملكي متناسق مع زخرفة الصورة */
         [data-testid="stSidebar"] { 
             background-color: rgba(26, 54, 93, 0.98) !important; 
         }
         [data-testid="stSidebar"] * { color: white !important; }
         
-        /* البطاقات التفاعلية وصناديق الاختيار بتأثير زجاجي أنيق (شفافية خلفية) */
-        .stSelectbox, .stTextInput, .metric-card {
-            background-color: rgba(255, 255, 255, 0.9) !important;
-            backdrop-filter: blur(8px) !important;
-            -webkit-backdrop-filter: blur(8px) !important;
-            border-radius: 10px !important;
-            border: 1px solid rgba(212, 175, 55, 0.3) !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        /* البطاقات التفاعلية وصناديق الاختيار بتأثير زجاجي أنيق (Glassmorphism) مأطرة بالذهبي */
+        .stSelectbox, .stTextInput, .metric-card, .stTextArea {
+            background-color: rgba(255, 255, 255, 0.92) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+            border-radius: 12px !important;
+            border: 1px solid rgba(212, 175, 55, 0.4) !important;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06) !important;
         }
         
-        /* جعل اللافتة العلوية الخضراء والزرقاء متناسقة ومنسجمة مع الخلفية */
+        /* تأثير الزجاج الشفاف لعلامات التبويب داخل فضاء الأستاذ والتلميذ */
+        .stTabs [data-baseweb="tab-panel"] {
+            background-color: rgba(255, 255, 255, 0.88) !important;
+            backdrop-filter: blur(10px) !important;
+            -webkit-backdrop-filter: blur(10px) !important;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+            margin-top: 15px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        /* جعل اللافتة العلوية متناسقة ومنسجمة مع الخلفية الزخرفية */
         div[data-testid="stMarkdownContainer"] > div {
             border-radius: 12px !important;
         }
 
-        /* العناوين والنصوص الرئيسية */
+        /* العناوين والنصوص الرئيسية باللون الأزرق الداكن الملكي */
         h1, h2, h3, label { 
             color: #1a365d !important; 
             font-family: 'Segoe UI', sans-serif !important; 
             font-weight: bold !important; 
         }
+        
+        /* تخصيص الأزرار لتأخذ طابعاً تفاعلياً متميزاً باللون الأزرق والذهبي */
+        .stButton>button {
+            background-color: #1a365d !important; 
+            color: white !important;
+            border-radius: 8px !important; 
+            border: 1px solid #d4af37 !important;
+            padding: 10px 24px !important; 
+            font-weight: bold !important;
+            transition: all 0.3s ease;
+        }
+        .stButton>button:hover {
+            background-color: #d4af37 !important; 
+            color: #1a365d !important;
+            box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4) !important;
+            transform: translateY(-1px);
+        }
         </style>
         """, unsafe_allow_html=True)
 
-# استدعاء الدالة لتطبيق التنسيق فوراً
+# استدعاء الدالة لتطبيق التنسيق فوراً على كافة الواجهات
 add_bg_and_styles()
 
 # إعداد مفتاح Gemini
@@ -90,7 +116,7 @@ def upload_pdf_to_drive(file_name, file_bytes):
         creds = get_gcp_credentials()
         drive_service = build('drive', 'v3', credentials=creds)
         
-        # الـ ID الخاص بمجلدك الجديد (تأكد من مشاركته مع الروبوت كـ Editor)
+        # الـ ID الخاص بمجلدك الجديد
         SHARED_FOLDER_ID = "1SwrvnMPTYLPSiV4B3Lyr6TiDCpurx_24"
         
         file_metadata = {
@@ -101,17 +127,15 @@ def upload_pdf_to_drive(file_name, file_bytes):
         fh = io.BytesIO(file_bytes)
         media = MediaIoBaseUpload(fh, mimetype='application/pdf', resumable=True)
         
-        # إنشاء الملف مع تفعيل خاصية التمرير المباشر لحسابك الشخصي
         file = drive_service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id, webViewLink',
-            supportsAllDrives=True  # إلزامية لتجاوز مساحة الروبوت الصفرية
+            supportsAllDrives=True  
         ).execute()
         
         file_id = file.get('id')
         
-        # مشاركة فورية للملف ليكون مرئياً للتلاميذ عبر الرابط
         try:
             drive_service.permissions().create(
                 fileId=file_id,
@@ -119,12 +143,11 @@ def upload_pdf_to_drive(file_name, file_bytes):
                 supportsAllDrives=True
             ).execute()
         except:
-            pass # في حال كان المجلد الأصلي يورث الصلاحيات تلقائياً
+            pass 
             
         return file.get('webViewLink')
         
     except Exception as e:
-        # إذا استمر عناد جوجل في الرفع، سنقوم بإنقاذ الموقف لكي لا تتوقف المنصة بالإكسيل
         st.warning("⚠️ تم حفظ المرجع نصياً في الإكسيل بنجاح، وتجاوزنا رفع الـ PDF مؤقتاً لتفادي قيود المساحة.")
         return "N/A"
 
@@ -223,7 +246,7 @@ with st.sidebar:
 # --- 3. واجهة الأستاذ الاحترافية وحفظ الـ PDF ---
 def admin_space(df_students, df_reports, df_lessons):
     st.markdown("""
-        <div style='background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white;'>
+        <div style='background: linear-gradient(135deg, #1a365d 0%, #0f172a 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; border: 1px solid #d4af37;'>
             <h1 style='color: #FFD700 !important; margin: 0; font-size: 2rem;'>👨‍🏫 الفضاء الرقمي للتدقيق الإداري والتربوي</h1>
             <p style='color: #cbd5e1; margin-top: 5px; font-size: 1rem;'>مرحباً بك يا أستاذ عبد الباسط المنصوري - تتبع ذكي ومقاومة شاملة لنسخ وتكرار دفاتر التلاميذ</p>
         </div>
@@ -234,14 +257,14 @@ def admin_space(df_students, df_reports, df_lessons):
     with tab1:
         st.markdown("### 📈 المؤشرات التربوية العامة")
         col1, col2, col3 = st.columns(3)
-        with col1: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>إجمالي التلاميذ</p><h2 style='margin:0; color:#1e3a8a;'>👥 {len(df_students)}</h2></div>", unsafe_allow_html=True)
-        with col2: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>الدفاتر المدققة</p><h2 style='margin:0; color:#1e3a8a;'>📥 {len(df_reports)}</h2></div>", unsafe_allow_html=True)
+        with col1: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>إجمالي التلاميذ</p><h2 style='margin:0; color:#1a365d;'>👥 {len(df_students)}</h2></div>", unsafe_allow_html=True)
+        with col2: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>الدفاتر المدققة</p><h2 style='margin:0; color:#1a365d;'>📥 {len(df_reports)}</h2></div>", unsafe_allow_html=True)
         with col3: 
             num_classes = df_students['القسم'].nunique() if not df_students.empty and 'القسم' in df_students.columns else 0
-            st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>الأقسام</p><h2 style='margin:0; color:#1e3a8a;'>🏫 {num_classes}</h2></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>الأقسام</p><h2 style='margin:0; color:#1a365d;'>🏫 {num_classes}</h2></div>", unsafe_allow_html=True)
         
         if not df_reports.empty and 'القسم' in df_reports.columns:
-            fig = px.bar(df_reports.groupby('القسم').size().reset_index(name='عدد الإرسالات'), x='القسم', y='عدد الإرسالات', title="📊 تفاعل الأقسام والالتزام بالدفاتر الرقمية", color_discrete_sequence=['#1e3a8a'])
+            fig = px.bar(df_reports.groupby('القسم').size().reset_index(name='عدد الإرسالات'), x='القسم', y='عدد الإرسالات', title="📊 تفاعل الأقسام والالتزام بالدفاتر الرقمية", color_discrete_sequence=['#1a365d'])
             st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
@@ -268,7 +291,6 @@ def admin_space(df_students, df_reports, df_lessons):
                 else:
                     full_reference_text = ref_note
                 
-                # تحديث ورقة العمل في خطوة واحدة آمنة
                 for attempt in range(3):
                     try:
                         client = get_gspread_client()
@@ -346,7 +368,7 @@ def admin_space(df_students, df_reports, df_lessons):
 # --- 4. واجهة التلميذ الاحترافية ---
 def student_space(df_students, df_lessons):
     st.markdown("""
-        <div style='background: linear-gradient(135deg, #10b981 0%, #1e3a8a 100%); padding: 35px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center;'>
+        <div style='background: linear-gradient(135deg, #10b981 0%, #1a365d 100%); padding: 35px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center; border: 1px solid #d4af37;'>
             <h2 style='color: #ffffff !important; margin: 0; font-size: 2.2rem; font-weight: bold;'>🇲🇦 الفضاء الرقمي للتلميذات والتلاميذ</h2>
             <p style='color: #e2e8f0; margin-top: 8px; font-size: 1.1rem;'>منصة التدقيق الفوري للدفاتر المدرسية لضمان التميز الأكاديمي والتحصيل المستمر</p>
         </div>
@@ -356,7 +378,6 @@ def student_space(df_students, df_lessons):
         st.warning("🔄 المنصة تقوم بتهدئة الاتصال مع خوادم جوجل حالياً، يرجى الانتظار لثوانٍ قليلة.")
         return
 
-    # تنظيف مسميات الأعمدة لضمان التوافق التام
     df_students.columns = df_students.columns.str.strip()
     col_class = 'القسم' if 'القسم' in df_students.columns else None
     col_name = 'اسم التلميذ' if 'اسم التلميذ' in df_students.columns else None
@@ -374,7 +395,7 @@ def student_space(df_students, df_lessons):
         sel_name = c2.selectbox("الرجاء اختيار اسمك الكامل:", ["---"] + names)
         pwd = st.text_input("أدخل القن السري الخاص بك (رقم مسار):", type="password")
         
-        if st.button("الولوج الآمن للمنصة 🚀", use_container_width=True):
+        if st.button("الولوك الآمن للمنصة 🚀", use_container_width=True):
             if sel_name != "---" and pwd.strip() != "":
                 real_pwd = df_students[df_students[col_name] == sel_name][col_id].values[0]
                 if str(pwd).strip().upper() == str(real_pwd).strip().upper():
@@ -403,16 +424,15 @@ def student_space(df_students, df_lessons):
                 
                 if st.button(f"بدء المعالجة والتدقيق الفوري لـ {l_name}", key=f"btn_{l_name}"):
                     if up_files:
-                        with st.spinner("🔄 jari سحب المرجع التربوي السحابي الثابت وفحص الدفتر..."):
+                        with st.spinner("🔄 جاري سحب المرجع التربوي السحابي الثابت وفحص الدفتر..."):
                             
-                            # --- تقسيم التعليمات بناءً على الدرس المختار (الدرس 3 بدون مرجع) ---
                             if "الدرس 3" in l_name:
                                 prompt_instructions = f"""
                                 أنت أستاذ مساعد لمادة الرياضيات بالثانوية التأهلية، ومهمتك الحالية هي مراقبة وتأكيد إنجاز التمارين والبحوث المنزلية.
                                 التلميذ: {st.session_state.user['name']} (القسم: {st.session_state.user['class']}) أرسل صور واجباته لدرس ({l_name}).
 
                                 المهام والقيود الإلزامية المطلوبة منك:
-                                1. تحقق بصرياً ومنطقياً بدقة عالية هل الصورة المرفوعة تحتوي فعلاً على تمارين رياضيات، معادلات، حلول، أو بحوث مكتوبة بخط اليد أو منجزة في ورقة/دفتر.
+                                1. تحقق بصرياً ومنطقياً بدقة عالية هل الصورة المرفوعة تحتوي فعلاً على تمارين رياضيات، معادلات, حلول، أو بحوث مكتوبة بخط اليد أو منجزة في ورقة/دفتر.
                                 2. لا تعتمد على أي مرجع سابق ولا تقارن المحتوى بأي درس، فالمطلوب فقط هو التأكد من وجود مجهود وإنجاز فعلي للواجب المنزلي.
                                 3. إذا كانت الصورة صحيحة وتحتوي على تمارين، صغ رداً تربوياً مشجعاً ومحفزاً يؤكد للتلميذ أنه تم قبول إرساله بنجاح (مثال: أحسنتم، تم تسجيل إنجازكم للتمارين بنجاح...).
                                 4. إذا كانت الصورة فارغة، أو غير واضحة، أو لا علاقة لها بالرياضيات والواجبات، أخبر التلميذ بلطف أن الصورة غير مطابقة وشجعه على إعادة رفع صورة واضحة لتمارينه لتسجيل الحضور.
@@ -420,7 +440,6 @@ def student_space(df_students, df_lessons):
                                 لغة الرد: اللغة العربية بأسلوب تربوي رصين ومحفز.
                                 """
                             else:
-                                # النمط الصارم العادي للدرس 1 والدرس 2 (الذي يعتمد على المقارنة بالمرجع المرفوع)
                                 prompt_instructions = f"""
                                 أنت مساعد أستاذ رياضيات عبقري ومراقب صارم جداً مكلف بكشف الغش والنسخ وتدقيق الدفاتر. 
                                 التلميذ {st.session_state.user['name']} (القسم: {st.session_state.user['class']}) أرسل صور دفتره لدرس ({l_name}).
@@ -455,7 +474,8 @@ if st.session_state.role == "student":
     student_space(df_students, df_lessons)
 elif st.session_state.role == "admin":
     if not st.session_state.auth:
-        st.markdown("<h3 style='color: #1e3a8a;'>🔑 فضاء الأستاذ  </h3>", unsafe_allow_html=True)
+        # هنا تم تصحيح عنوان واجهة الدخول بشكل سليم تماماً وإلغاء الكود المشوه
+        st.markdown("<h3 style='color: #1a365d;'>🔑 فضاء الأستاذ والإدارة التربوية</h3>", unsafe_allow_html=True)
         admin_pwd = st.text_input("الرجاء إدخال كلمة سر الولوج الإدارية المخصصة:", type="password")
         if st.button("تأكيد الهوية 👨‍🏫", use_container_width=True):
             if admin_pwd == "1234":
