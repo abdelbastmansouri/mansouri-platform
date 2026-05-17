@@ -346,7 +346,7 @@ def admin_space(df_students, df_reports, df_lessons):
 # --- 4. واجهة التلميذ الاحترافية ---
 def student_space(df_students, df_lessons):
     st.markdown("""
-        <div style='background: linear-gradient(135deg, #10b981 0%, #1a365d 100%); padding: 35px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center; border: 1px solid #d4af37;'>
+        <div style='background: linear-gradient(135deg, #10b981 0%, #F5276C 100%); padding: 35px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center; border: 1px solid #d4af37;'>
             <h2 style='color: #ffffff !important; margin: 0; font-size: 2.2rem; font-weight: bold;'>🇲🇦 الفضاء الرقمي للتلميذات والتلاميذ</h2>
             <p style='color: #e2e8f0; margin-top: 8px; font-size: 1.1rem;'>منصة التدقيق الفوري للدفاتر المدرسية لضمان التميز الأكاديمي والتحصيل المستمر</p>
         </div>
