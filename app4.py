@@ -278,7 +278,7 @@ def get_lesson_ref(lesson_name, df_lessons):
 with st.sidebar:
     st.markdown("""
         <div style='text-align: center; padding: 10px;'>
-        st.info(f"🎓 {st.session_state.user.get('class')}")
+        <span style='font-size: 1.9rem;'>🎓</span>
         <h3 style='color: #FFD700 !important; font-size: 1.3rem; margin-top: 10px; text-shadow: 1px 1px 2px black;'>وزارة التربية الوطنية والتعليم الأولي والرياضة</h3>
             <p style='color: #cbd5e1 !important; font-size: 0.95rem;'>ثانوية الزرقطوني التأهيلية</p>
         </div>
