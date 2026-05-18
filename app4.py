@@ -87,7 +87,7 @@ def get_custom_bg():
         font-weight: bold !important; 
     }
     
-    /* تنسيق خاص وعصري للأزرار تفاعلياً بجعل النص ذهبياً فخماً */
+    /* تنسيق خاص وعصري للأزرار التفاعلية العادية (مثل تسجيل الدخول / تسجيل الخروج) */
     .stButton>button {
         background-color: #1a365d !important; 
         color: #FFD700 !important;
@@ -106,42 +106,47 @@ def get_custom_bg():
         box-shadow: 0 4px 12px rgba(197, 160, 89, 0.4) !important;
     }
     
-    /* 🛠️ الحل النهائي لمنع ظهور كلمة كيبورد عند تمرير الفأرة (Hover) */
+    /* 🛠️ الحل الذكي: استهداف أزرار القائمة الجانبية فقط وحمايتها من الاختفاء والترجمة */
+    
+    /* إخفاء النص المترجم (كيبورد) فقط دون إخفاء الزر بالكامل */
     [data-testid="stSidebarCollapseButton"] button, 
-    [data-testid="stSidebar"] button {
+    [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] {
         color: transparent !important;
         font-size: 0px !important;
         text-shadow: none !important;
+        position: relative !important;
     }
     
-    [data-testid="stSidebarCollapseButton"] button *, 
-    [data-testid="stSidebar"] button * {
-        display: none !important;
-        pointer-events: none !important;
+    /* منع المتصفح من إظهار التلميح عند الحوم (Hover) فوق زر القائمة فقط */
+    [data-testid="stSidebarCollapseButton"] button svg,
+    [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] svg {
+        opacity: 0 !important; /* إخفاء الأيقونة الأصلية المتأثرة بالترجمة */
     }
 
-    [data-testid="stSidebar"] button::before {
+    /* رسم سهم الإغلاق اليدوي الثابت (عندما تكون القائمة مفتوحة) باللون الذهبي */
+    [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]::before {
         content: "❮" !important; 
         color: #FFD700 !important; 
-        font-size: 20px !important;
+        font-size: 22px !important;
         font-weight: bold !important;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        pointer-events: auto !important;
+        position: absolute !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        visibility: visible !important;
     }
 
+    /* رسم سهم الفتح اليدوي الثابت (عندما تكون القائمة مغلقة) باللون الكحلي */
     [data-testid="stSidebarCollapseButton"] button::before {
         content: "❯" !important; 
         color: #1a365d !important; 
-        font-size: 20px !important;
+        font-size: 22px !important;
         font-weight: bold !important;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        pointer-events: auto !important;
+        position: absolute !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        visibility: visible !important;
     }
     </style>
     """
