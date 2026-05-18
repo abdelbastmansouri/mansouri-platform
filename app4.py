@@ -138,8 +138,8 @@ def upload_pdf_to_drive(file_name, file_bytes):
 def calculate_image_hash(file_bytes):
     return hashlib.md5(file_bytes).hexdigest()
 
-# 💡 تم تفعيل التخزين المؤقت لمدة 15 ثانية لتقليل الضغط على حواسب جوجل وحل مشكلة الـ Quota نهائياً
-@st.cache_data(ttl=50)
+# التخزين المؤقت لحل مشكلة الـ Quota
+@st.cache_data(ttl=15)
 def load_data():
     sh = None
     for attempt in range(4):
@@ -158,6 +158,8 @@ def load_data():
         if data_rows and len(data_rows) > 1:
             headers = [h.strip() for h in data_rows[0]]
             df_students = pd.DataFrame(data_rows[1:], columns=headers)
+            # معالجة وتوحيد التسميات لجدول التلاميذ الأساسي
+            df_students.columns = df_students.columns.str.strip()
             if "إسم التلميذ" in df_students.columns:
                 df_students = df_students.rename(columns={"إسم التلميذ": "اسم التلميذ"})
         else:
@@ -171,6 +173,17 @@ def load_data():
         if reports_rows and len(reports_rows) > 1:
             reports_headers = [h.strip() for h in reports_rows[0]]
             df_reports = pd.DataFrame(reports_rows[1:], columns=reports_headers)
+            
+            # 🛠️ [إصلاح العطل هنا]: تنظيف أسماء الأعمدة وتوحيد الهمزات لضمان عدم حدوث KeyError مجدداً
+            df_reports.columns = df_reports.columns.str.strip()
+            if "إسم" in df_reports.columns:
+                df_reports = df_reports.rename(columns={"إسم": "الاسم"})
+            if "اسم" in df_reports.columns:
+                df_reports = df_reports.rename(columns={"اسم": "الاسم"})
+            if "اسم التلميذ" in df_reports.columns:
+                df_reports = df_reports.rename(columns={"اسم التلميذ": "الاسم"})
+            if "إسم التلميذ" in df_reports.columns:
+                df_reports = df_reports.rename(columns={"إسم التلميذ": "الاسم"})
         else:
             df_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
     except:
@@ -182,6 +195,7 @@ def load_data():
         if lessons_rows and len(lessons_rows) > 1:
             lessons_headers = [h.strip() for h in lessons_rows[0]]
             df_lessons = pd.DataFrame(lessons_rows[1:], columns=lessons_headers)
+            df_lessons.columns = df_lessons.columns.str.strip()
         else:
             df_lessons = pd.DataFrame(columns=["الدرس", "الملاحظات_المرجعية", "تاريخ_التحديث"])
     except:
@@ -227,7 +241,7 @@ with st.sidebar:
         st.divider()
         if st.button("🚪 تسجيل الخروج", use_container_width=True):
             for key in list(st.session_state.keys()): del st.session_state[key]
-            st.cache_data.clear() # مسح الذاكرة عند الخروج
+            st.cache_data.clear()
             st.rerun()
     else:
         menu = st.radio(label="اختر الفضاء المستهدف:", options=["فضاء التلميذات والتلاميذ", "فضاء الإدارة والأستاذ"])
@@ -292,7 +306,7 @@ def admin_space(df_students, df_reports, df_lessons):
                     if not updated: rows.append([lesson_choice, full_reference_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
                     ws_lessons.clear()
                     ws_lessons.update([headers] + rows)
-                    st.cache_data.clear() # تنظيف الذاكرة لرؤية المرجع الجديد فوراً
+                    st.cache_data.clear()
                     st.success(f"🎉 تم تحديث سجل المرجع بنجاح!")
                 except Exception as ex:
                     st.error(f"خطأ أثناء تحديث الإكسيل: {ex}")
@@ -320,7 +334,6 @@ def student_space(df_students, df_reports, df_lessons):
         st.warning("🔄 جاري تهيئة الاتصال السحابي الآمن...")
         return
 
-    df_students.columns = df_students.columns.str.strip()
     col_class = 'القسم'
     col_name = 'اسم التلميذ'
     col_id = 'رقم التلميذ'  
@@ -351,7 +364,8 @@ def student_space(df_students, df_reports, df_lessons):
         student_name = st.session_state.user['name']
         st.success(f"🏫 مرحباً بالتلميذ(ة): **{student_name}** | من قسم: **{st.session_state.user['class']}**")
         
-        student_all_submissions = df_reports[df_reports['الاسم'] == student_name] if not df_reports.empty else pd.DataFrame()
+        # تم تأمين جلب السجلات هنا تماماً بعد فلترة الأعمدة في الأعلى
+        student_all_submissions = df_reports[df_reports['الاسم'] == student_name] if not df_reports.empty and 'الاسم' in df_reports.columns else pd.DataFrame()
         submitted_lessons = student_all_submissions['الدرس'].tolist() if not student_all_submissions.empty else []
         
         lesson_percentages = {}
@@ -430,7 +444,6 @@ def student_space(df_students, df_reports, df_lessons):
                                         f.seek(0)
                                         current_hashes.append(calculate_image_hash(f_bytes))
                                     
-                                    # 🚨 هنا نقرأ البيانات اللحظية مباشرة عند الحفظ والتحقق من الغش لتفادي التكرار
                                     try:
                                         client = get_gspread_client()
                                         live_sh = client.open("les classes").worksheet("Reports")
@@ -439,6 +452,9 @@ def student_space(df_students, df_reports, df_lessons):
                                         if live_rows and len(live_rows) > 1:
                                             live_headers = [h.strip() for h in live_rows[0]]
                                             df_live_reports = pd.DataFrame(live_rows[1:], columns=live_headers)
+                                            df_live_reports.columns = df_live_reports.columns.str.strip()
+                                            if "اسم" in df_live_reports.columns: df_live_reports = df_live_reports.rename(columns={"اسم": "الاسم"})
+                                            if "إسم" in df_live_reports.columns: df_live_reports = df_live_reports.rename(columns={"إسم": "الاسم"})
                                         else:
                                             df_live_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
                                     except Exception as check_err:
@@ -508,7 +524,7 @@ def student_space(df_students, df_reports, df_lessons):
                                                 hashes_to_save
                                             ])
                                             
-                                            st.cache_data.clear() # مسح الكاش فور الإرسال لضمان تحديث حالة التلميذ في اللوحة فوراً
+                                            st.cache_data.clear()
                                             st.markdown("### 📋 التقرير الرقمي لتدقيق الدفتر المستلم")
                                             st.info(report_text)
                                             st.success(f"تم حفظ التقرير بنجاح! نسبة الإنجاز المسجلة للأستاذ: {calculated_percentage} ✅")
