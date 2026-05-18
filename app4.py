@@ -14,7 +14,7 @@ import base64
 
 # --- 1. الإعدادات الأولية وإضفاء الطابع الاحترافي للوزارة ---
 st.set_page_config(
-    page_title="منصة تدقيق الدفاتر - الأستاذ المنصوري", 
+    page_title="منصة ذ عبد الباسط منصوري", 
     layout="wide",
     page_icon="math🇲🇦"
 )
@@ -278,9 +278,9 @@ def get_lesson_ref(lesson_name, df_lessons):
 with st.sidebar:
     st.markdown("""
         <div style='text-align: center; padding: 10px;'>
-            <img src='https://img.icons8.com/color/120/000000/education.png' style='border-radius: 50%; background: white; padding: 10px; width: 80px;'/>
+            st.info(f"📋 style='border-radius: 50%; background: white; padding: 10px; width: 80px;' ")
             <h3 style='color: #FFD700 !important; font-size: 1.3rem; margin-top: 10px; text-shadow: 1px 1px 2px black;'>وزارة التربية الوطنية والتعليم الأولي والرياضة</h3>
-            <p style='color: #cbd5e1 !important; font-size: 0.95rem;'>الأكاديمية الجهوية للتربية والتكوين</p>
+            <p style='color: #cbd5e1 !important; font-size: 0.95rem;'>ثانوية الزرقطوني التأهيلية</p>
         </div>
     """, unsafe_allow_html=True)
     st.divider()
@@ -316,7 +316,7 @@ def admin_space(df_students, df_reports, df_lessons):
     st.markdown("""
         <div style='background: linear-gradient(#008E8E, #1a365d 0%, #C72C48 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; border: 2px solid #C5A059;'>
             <h1 class='golden-title' style='font-size: 2.3rem;'>👨‍🏫 الفضاء الرقمي للتدقيق الإداري والتربوي</h1>
-            <p class='golden-sub'>مرحباً بك يا أستاذ عبد الباسط المنصوري - تتبع ذكي ومقاومة شاملة لنسخ وتكرار دفاتر التلاميذ</p>
+            <p class='golden-sub'>مرحباً بك يا أستاذ عبد الباسط منصوري - تتبع ذكي ومقاومة شاملة لنسخ وتكرار دفاتر التلاميذ</p>
         </div>
     """, unsafe_allow_html=True)
     
