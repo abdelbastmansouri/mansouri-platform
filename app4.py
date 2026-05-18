@@ -106,24 +106,22 @@ def get_custom_bg():
         box-shadow: 0 4px 12px rgba(197, 160, 89, 0.4) !important;
     }
     
-    /* 🛠️ الحل الذكي: استهداف أزرار القائمة الجانبية فقط وحمايتها من الاختفاء والترجمة */
-    
-    /* إخفاء النص المترجم (كيبورد) فقط دون إخفاء الزر بالكامل */
+    /* 🛠️ الحل النهائي والحاسم: عزل الأزرار الأصلية ومنع الفأرة من قراءة التلميحات */
     [data-testid="stSidebarCollapseButton"] button, 
     [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] {
         color: transparent !important;
         font-size: 0px !important;
         text-shadow: none !important;
-        position: relative !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
     
-    /* منع المتصفح من إظهار التلميح عند الحوم (Hover) فوق زر القائمة فقط */
     [data-testid="stSidebarCollapseButton"] button svg,
     [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] svg {
-        opacity: 0 !important; /* إخفاء الأيقونة الأصلية المتأثرة بالترجمة */
+        display: none !important;
     }
 
-    /* رسم سهم الإغلاق اليدوي الثابت (عندما تكون القائمة مفتوحة) باللون الذهبي */
     [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]::before {
         content: "❮" !important; 
         color: #FFD700 !important; 
@@ -134,9 +132,9 @@ def get_custom_bg():
         top: 50% !important;
         transform: translate(-50%, -50%) !important;
         visibility: visible !important;
+        display: block !important;
     }
 
-    /* رسم سهم الفتح اليدوي الثابت (عندما تكون القائمة مغلقة) باللون الكحلي */
     [data-testid="stSidebarCollapseButton"] button::before {
         content: "❯" !important; 
         color: #1a365d !important; 
@@ -147,6 +145,16 @@ def get_custom_bg():
         top: 50% !important;
         transform: translate(-50%, -50%) !important;
         visibility: visible !important;
+        display: block !important;
+    }
+
+    [data-testid="stSidebarCollapseButton"] button::after,
+    [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]::after {
+        content: "" !important;
+        position: absolute !important;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: transparent !important;
+        z-index: 10 !important;
     }
     </style>
     """
