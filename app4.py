@@ -158,7 +158,6 @@ def load_data():
         if data_rows and len(data_rows) > 1:
             headers = [h.strip() for h in data_rows[0]]
             df_students = pd.DataFrame(data_rows[1:], columns=headers)
-            # معالجة وتوحيد التسميات لجدول التلاميذ الأساسي
             df_students.columns = df_students.columns.str.strip()
             if "إسم التلميذ" in df_students.columns:
                 df_students = df_students.rename(columns={"إسم التلميذ": "اسم التلميذ"})
@@ -174,16 +173,11 @@ def load_data():
             reports_headers = [h.strip() for h in reports_rows[0]]
             df_reports = pd.DataFrame(reports_rows[1:], columns=reports_headers)
             
-            # 🛠️ [إصلاح العطل هنا]: تنظيف أسماء الأعمدة وتوحيد الهمزات لضمان عدم حدوث KeyError مجدداً
             df_reports.columns = df_reports.columns.str.strip()
-            if "إسم" in df_reports.columns:
-                df_reports = df_reports.rename(columns={"إسم": "الاسم"})
-            if "اسم" in df_reports.columns:
-                df_reports = df_reports.rename(columns={"اسم": "الاسم"})
-            if "اسم التلميذ" in df_reports.columns:
-                df_reports = df_reports.rename(columns={"اسم التلميذ": "الاسم"})
-            if "إسم التلميذ" in df_reports.columns:
-                df_reports = df_reports.rename(columns={"إسم التلميذ": "الاسم"})
+            if "إسم" in df_reports.columns: df_reports = df_reports.rename(columns={"إسم": "الاسم"})
+            if "اسم" in df_reports.columns: df_reports = df_reports.rename(columns={"اسم": "الاسم"})
+            if "اسم التلميذ" in df_reports.columns: df_reports = df_reports.rename(columns={"اسم التلميذ": "الاسم"})
+            if "إسم التلميذ" in df_reports.columns: df_reports = df_reports.rename(columns={"إسم التلميذ": "الاسم"})
         else:
             df_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
     except:
@@ -364,14 +358,15 @@ def student_space(df_students, df_reports, df_lessons):
         student_name = st.session_state.user['name']
         st.success(f"🏫 مرحباً بالتلميذ(ة): **{student_name}** | من قسم: **{st.session_state.user['class']}**")
         
-        # تم تأمين جلب السجلات هنا تماماً بعد فلترة الأعمدة في الأعلى
         student_all_submissions = df_reports[df_reports['الاسم'] == student_name] if not df_reports.empty and 'الاسم' in df_reports.columns else pd.DataFrame()
         submitted_lessons = student_all_submissions['الدرس'].tolist() if not student_all_submissions.empty else []
         
         lesson_percentages = {}
+        lesson_full_reports = {}
         if not student_all_submissions.empty:
             for _, row in student_all_submissions.iterrows():
                 lesson_percentages[row['الدرس']] = row['النسبة']
+                lesson_full_reports[row['الدرس']] = row['التقرير']
         
         st.markdown("<div class='section-title'>📊 وضعيتك الحالية في السجل الرقمي:</div>", unsafe_allow_html=True)
         
@@ -415,18 +410,22 @@ def student_space(df_students, df_reports, df_lessons):
                 l_name = f"الدرس {i+1}"
                 
                 if "الدرس 1" in submitted_lessons and "الدرس 2" in submitted_lessons:
-                    st.error(f"❌ **تنبيه الإدارة:** لقد أرسلت صور الدرس الأول والدرس الثاني، لا حاجة للإرسال مرة أخرى. لتعديل الدروس يجب التواصل مع الأستاذ.")
+                    st.error(f"❌ **تنبيه الإدارة:** لقد أرسلت صور الدرس الأول والدرس الثاني مسبقاً.")
+                    st.markdown(f"### 📋 تقرير التدقيق المخزن لـ {l_name}:")
+                    st.info(lesson_full_reports.get(l_name, "لا يوجد نص تقرير محفوظ."))
                 
                 elif l_name in submitted_lessons:
                     current_p = lesson_percentages.get(l_name, "N/A")
-                    st.info(f"ℹ️ **لقد أرسلت صور {l_name} مسبقاً** بنجاح، ونسبة إنجازك المحفوظة هي: **{current_p}**. لتعديل هذا الدرس يرجى مراجعة الأستاذ.")
+                    st.warning(f"ℹ️ **لقد أرسلت صور {l_name} مسبقاً** بنجاح، ونسبة إنجازك المحفوظة هي: **{current_p}**.")
+                    st.markdown(f"### 📋 تقرير التدقيق المخزن لـ {l_name}:")
+                    st.info(lesson_full_reports.get(l_name, "لا يوجد نص تقرير محفوظ."))
                 
                 else:
                     st.markdown(f"#### 📸 مركز رفع صور دفتر مادة الرياضيات - {l_name}")
                     saved_lesson_reference = get_lesson_ref(l_name, df_lessons)
                     
                     up_files = st.file_uploader(
-                        f"اختر صور صفحات الدفتر لـ {l_name} (🚨 تنبيه: يشترط تحميل 14 صورة على الأقل)", 
+                        f"اختر صور صفحات الدفتر لـ {l_name} (🚨 تنبيه: يشترط تحميل 13 صورة على الأقل)", 
                         accept_multiple_files=True, 
                         key=f"up_{l_name}", 
                         type=['jpg','jpeg','png']
@@ -434,7 +433,7 @@ def student_space(df_students, df_reports, df_lessons):
                     
                     if st.button(f"بدء المعالجة والتدقيق الفوري لـ {l_name}", key=f"btn_{l_name}"):
                         if up_files:
-                            if len(up_files) < 14:
+                            if len(up_files) < 13:
                                 st.error(f"⚠️ **خطأ في معايير قبول الدفتر:** لقد قمت برفع ({len(up_files)}) صور فقط! ميثاق المادة يشترط رفع **14 صورة على الأقل** للدرس لضمان تدقيق المحتوى كاملاً.")
                             else:
                                 with st.spinner("🔄 جاري التحقق الفوري من سجلاتك وفحص جودة الصور..."):
@@ -487,6 +486,7 @@ def student_space(df_students, df_reports, df_lessons):
                                 else:
                                     with st.spinner("🔄 البصمات والعدد سليم تماماً! جاري قياس نسبة الإنجاز..."):
                                         try:
+                                            # 🛠️ [تحديث الـ Prompt لكشف التكرار البصري]:
                                             prompt_instructions = f"""
                                             أنت مساعد أستاذ الرياضيات عبد الباسط منصوري بالثانوية التأهلية المغربية. 
                                             التلميذ {student_name} (القسم: {st.session_state.user['class']}) أرسل صور دفتره لدرس ({l_name}).
@@ -494,7 +494,13 @@ def student_space(df_students, df_reports, df_lessons):
                                             المرجع والمخطط الملزم الذي حدده الأستاذ لك هو:
                                             \"\"\"{saved_lesson_reference}\"\"\"
                   
-                                            المهام المطلوبة منك:
+                                            🚨 معيار صارم وحاسم ضد الغش: 
+                                            قم بفحص الصور المرفوعة بصرياً بدقة. إذا لاحظت أن التلميذ قام برفع "صورتين أو أكثر مكررتين لنفس الصفحة تماماً" (سواء أخذ لقطة شاشة مرتين، أو صور نفس الصفحة من زاويتين مختلفتين لخداع النظام وزيادة عدد الصور لكي يصل لـ 14 صورة)، فقم فوراً بما يلي:
+                                            1. اكتب تقريراً حازماً وموجزاً تخبره فيه بأنه تم رصد محاولة تكرار صور لخداع النظام.
+                                            2. ضع العبارة الأخيرة تماماً هكذا بدون زيادة أو نقصان:
+                                            النسبة النهائية: 0%
+                                            
+                                            إذا كانت الصور كلها سليمة ومختلفة تتابعياً للدفتر، فنفذ المهام التربوية التالية:
                                             1. تفقد العناوين والفقرات والتمارين المكتوبة بدقة وقارنها بالدرس المرجعي.
                                             2. احسب بدقة "نسبة مئوية تقديرية" لإنجاز التلميذ لكتابة الدرس وحل التمارين.
                                             3. صغ تقريراً تربوياً مشجعاً وموجزاً باللغة العربية.
@@ -525,8 +531,6 @@ def student_space(df_students, df_reports, df_lessons):
                                             ])
                                             
                                             st.cache_data.clear()
-                                            st.markdown("### 📋 التقرير الرقمي لتدقيق الدفتر المستلم")
-                                            st.info(report_text)
                                             st.success(f"تم حفظ التقرير بنجاح! نسبة الإنجاز المسجلة للأستاذ: {calculated_percentage} ✅")
                                             st.rerun() 
                                             
