@@ -21,7 +21,7 @@ st.set_page_config(
     page_icon="math🇲🇦"
 )
 
-# دالة الخلفية السحابية
+# دالة الخلفية السحابية المحدثة
 def get_custom_bg():
     return """
     <style>
@@ -138,7 +138,7 @@ def upload_pdf_to_drive(file_name, file_bytes):
 def calculate_image_hash(file_bytes):
     return hashlib.md5(file_bytes).hexdigest()
 
-@st.cache_data(ttl=15)
+@st.cache_data(ttl=5) # تقليل الكاش إلى 5 ثوانٍ لضمان جلب البيانات فوراً بعد الإرسال
 def load_data():
     sh = None
     for attempt in range(4):
@@ -158,8 +158,7 @@ def load_data():
             headers = [h.strip() for h in data_rows[0]]
             df_students = pd.DataFrame(data_rows[1:], columns=headers)
             df_students.columns = df_students.columns.str.strip()
-            if "إسم التلميذ" in df_students.columns:
-                df_students = df_students.rename(columns={"إسم التلميذ": "اسم التلميذ"})
+            if "إسم التلميذ" in df_students.columns: df_students = df_students.rename(columns={"إسم التلميذ": "اسم التلميذ"})
         else:
             df_students = pd.DataFrame(columns=["رقم التلميذ", "اسم التلميذ", "تاريخ الإزدياد", "القسم"])
     except:
@@ -171,12 +170,12 @@ def load_data():
         if reports_rows and len(reports_rows) > 1:
             reports_headers = [h.strip() for h in reports_rows[0]]
             df_reports = pd.DataFrame(reports_rows[1:], columns=reports_headers)
-            
             df_reports.columns = df_reports.columns.str.strip()
-            if "إسم" in df_reports.columns: df_reports = df_reports.rename(columns={"إسم": "الاسم"})
-            if "اسم" in df_reports.columns: df_reports = df_reports.rename(columns={"اسم": "الاسم"})
-            if "اسم التلميذ" in df_reports.columns: df_reports = df_reports.rename(columns={"اسم التلميذ": "الاسم"})
-            if "إسم التلميذ" in df_reports.columns: df_reports = df_reports.rename(columns={"إسم التلميذ": "الاسم"})
+            
+            # توحيد كافة المسميات المحتملة لعمود الاسم لتجنب أخطاء الفلترة
+            for col in df_reports.columns:
+                if col in ["إسم", "اسم", "اسم التلميذ", "إسم التلميذ"]:
+                    df_reports = df_reports.rename(columns={col: "الاسم"})
         else:
             df_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
     except:
@@ -341,14 +340,19 @@ def student_space(df_students, df_reports, df_lessons):
         
         if st.button("التحقق والولوج الآمن للمنصة 🚀", use_container_width=True):
             if sel_class != "---" and input_massar and input_birth:
+                # تنظيف نصوص المدخلات لمطابقة دقيقة
+                df_students[col_id] = df_students[col_id].astype(str).str.strip()
+                df_students[col_birth] = df_students[col_birth].astype(str).str.strip()
+                
                 matched_student = df_students[
                     (df_students[col_class] == sel_class) & 
-                    (df_students[col_id].str.strip().str.upper() == input_massar.upper()) & 
-                    (df_students[col_birth].str.strip() == input_birth)
+                    (df_students[col_id].str.upper() == input_massar.upper()) & 
+                    (df_students[col_birth] == input_birth)
                 ]
                 if not matched_student.empty:
                     st.session_state.auth = True
-                    st.session_state.user = {"name": matched_student.iloc[0][col_name], "class": sel_class}
+                    # حفظ الاسم نظيفاً بدون فراغات جانبية خفية
+                    st.session_state.user = {"name": str(matched_student.iloc[0][col_name]).strip(), "class": sel_class}
                     st.success("🎉 تم التحقق من الهوية بنجاح!")
                     st.rerun()
                 else:
@@ -357,21 +361,30 @@ def student_space(df_students, df_reports, df_lessons):
         student_name = st.session_state.user['name']
         st.success(f"🏫 مرحباً بالتلميذ(ة): **{student_name}** | من قسم: **{st.session_state.user['class']}**")
         
-        student_all_submissions = df_reports[df_reports['الاسم'] == student_name] if not df_reports.empty and 'الاسم' in df_reports.columns else pd.DataFrame()
-        submitted_lessons = student_all_submissions['الدرس'].tolist() if not student_all_submissions.empty else []
+        # --- 🛠️ الميثاق المطور لفلترة السجلات وإزالة الفراغات المسببة للثغرة ---
+        student_all_submissions = pd.DataFrame()
+        if not df_reports.empty and 'الاسم' in df_reports.columns:
+            # تنظيف عمود الأسماء وعمود الدروس في قاعدة البيانات مؤقتاً للتأكد من المطابقة التامة
+            df_reports['الاسم_نظيف'] = df_reports['الاسم'].astype(str).str.strip()
+            df_reports['الدرس_نظيف'] = df_reports['الدرس'].astype(str).str.strip()
+            student_all_submissions = df_reports[df_reports['الاسم_نظيف'] == student_name]
+            
+        submitted_lessons = student_all_submissions['الدرس_نظيف'].tolist() if not student_all_submissions.empty else []
         
         lesson_percentages = {}
         lesson_full_reports = {}
         if not student_all_submissions.empty:
             for _, row in student_all_submissions.iterrows():
-                lesson_percentages[row['الدرس']] = str(row['النسبة']).strip()
-                lesson_full_reports[row['الدرس']] = row['التقرير']
+                l_clean = str(row['الدرس_نظيف'])
+                lesson_percentages[l_clean] = str(row['النسبة']).strip()
+                lesson_full_reports[l_clean] = row['التقرير']
         
         st.markdown("<div class='section-title'>📊 وضعيتك الحالية في السجل الرقمي:</div>", unsafe_allow_html=True)
         
-        if "الدرس 1" in submitted_lessons or "الدرس 2" in submitted_lessons:
+        # إذا وجدنا أي تسليم فعلي مسجل، نلغي جملة "لم تقم بإرسال أي دروس"
+        if len(submitted_lessons) > 0:
             status_text = "📢 <b>حالة إرسال الفروض والدفاتر:</b><br>"
-            for l_sub in ["الدرس 1", "الدرس 2"]:
+            for l_sub in ["الدرس 1", "الدرس 2", "الدرس 3"]:
                 if l_sub in submitted_lessons:
                     pct = lesson_percentages.get(l_sub, "N/A")
                     if pct == "0%":
@@ -380,7 +393,8 @@ def student_space(df_students, df_reports, df_lessons):
                         status_text += f"📉 نسبة إنجازك لـ <b>{l_sub}</b> هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{pct}</b></span><br>"
             st.markdown(f"<div class='status-box'>{status_text}</div>", unsafe_allow_html=True)
         else:
-            st.warning("ℹ️ لم تقم بإرسال أي دروس بعد. المرجو اختيار الدرس من التبويبات أسفله ورفع 14 صورة على الأقل.")
+            # لا تظهر هذه الرسالة إلا إذا كان السجل فارغاً تماماً وصحيحاً من الفراغات
+            st.warning("لم تقم بإرسال أي دروس بعد. المرجو اختيار الدرس من التبويبات أسفله ورفع 14 صورة على الأقل.")
 
         lesson_tabs = st.tabs(["📘 المجزوءة / الدرس 1", "📗 المجزوءة / الدرس 2", "📙 المجزوءة / الدرس 3"])
         
@@ -388,18 +402,16 @@ def student_space(df_students, df_reports, df_lessons):
             with tab:
                 l_name = f"الدرس {i+1}"
                 
-                # 🛠️ [التعديل الجذري]: إذا كان التلميذ قد أرسل الدرس مسبقاً
+                # منع التلميذ بشكل قاطع إذا تم رصد سجل للدرس الحالي
                 if l_name in submitted_lessons:
                     current_p = lesson_percentages.get(l_name, "N/A")
                     
                     if current_p == "0%":
-                        # إذا كشف النظام غشاً، نظهر له تنبيهاً أحمر صارماً وثابتاً بالتقرير
                         st.error(f"🚨 **تنبيه نظام التدقيق والنزاهة الرقمية:**")
                         st.markdown(f"<div style='background-color:#fee2e2; border-right:6px solid #dc2626; padding:15px; border-radius:8px; color:#991b1b; font-weight:bold;'>⚠️ لقد تم رفض هذا الإرسال وحصلت على نسبة 0% بسبب رصد تكرار بصرى في صور الدفاتر المرفوعة لخداع النظام.</div>", unsafe_allow_html=True)
-                        st.markdown(f"### 📋 تفاصيل تقرير المخالفة المحفوظ إدارياً:")
+                        st.markdown(f"### 📋 تفاصيل تقرير المخالفة المحفوظ إدارياً وتوبيخ الذكاء الاصطناعي:")
                         st.info(lesson_full_reports.get(l_name, "لا يوجد نص تقرير محفوظ."))
                     else:
-                        # الإرسال العادي الناجح يظل ثابتاً بلون برتقالي/أخضر مريح
                         st.warning(f"ℹ️ **لقد أرسلت صور {l_name} مسبقاً** بنجاح، ونسبة إنجازك المحفوظة هي: **{current_p}**.")
                         st.markdown(f"### 📋 تقرير التدقيق المخزن لـ {l_name}:")
                         st.info(lesson_full_reports.get(l_name, "لا يوجد نص تقرير محفوظ."))
@@ -436,8 +448,9 @@ def student_space(df_students, df_reports, df_lessons):
                                             live_headers = [h.strip() for h in live_rows[0]]
                                             df_live_reports = pd.DataFrame(live_rows[1:], columns=live_headers)
                                             df_live_reports.columns = df_live_reports.columns.str.strip()
-                                            if "اسم" in df_live_reports.columns: df_live_reports = df_live_reports.rename(columns={"اسم": "الاسم"})
-                                            if "إسم" in df_live_reports.columns: df_live_reports = df_live_reports.rename(columns={"إسم": "الاسم"})
+                                            for col in df_live_reports.columns:
+                                                if col in ["اسم", "إسم", "اسم التلميذ", "إسم التلميذ"]:
+                                                    df_live_reports = df_live_reports.rename(columns={col: "الاسم"})
                                         else:
                                             df_live_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
                                     except Exception as check_err:
@@ -448,8 +461,9 @@ def student_space(df_students, df_reports, df_lessons):
                                 original_student_name = ""
                                 
                                 if "بصمات_الصور" in df_live_reports.columns:
+                                    df_live_reports['الاسم_نظيف'] = df_live_reports['الاسم'].astype(str).str.strip()
                                     for idx, row in df_live_reports.iterrows():
-                                        if row['الاسم'] == student_name:
+                                        if row['الاسم_نظيف'] == student_name:
                                             continue
                                         saved_hashes_str = str(row['بصمات_الصور']).strip()
                                         if saved_hashes_str:
@@ -479,7 +493,7 @@ def student_space(df_students, df_reports, df_lessons):
                   
                                             🚨 معيار صارم وحاسم ضد الغش: 
                                             قم بفحص الصور المرفوعة بصرياً بدقة. إذا لاحظت أن التلميذ قام برفع "صورتين أو أكثر مكررتين لنفس الصفحة تماماً" (سواء أخذ لقطة شاشة مرتين، أو صور نفس الصفحة من زاويتين مختلفتين لخداع النظام وزيادة عدد الصور لكي يصل لـ 14 صورة)، فقم فوراً بما يلي:
-                                            1. اكتب تقريراً حازماً وموجزاً تخبره فيه بأنه تم رصد محاولة تكرار صور لخداع النظام ومخالفة ميثاق المادة.
+                                            1. اكتب تقريراً حازماً وموجزاً وتوبيخياً تخبره فيه بأنه تم رصد محاولة تكرار صور لخداع النظام ومخالفة ميثاق المادة.
                                             2. ضع العبارة الأخيرة تماماً هكذا بدون زيادة أو نقصان:
                                             النسبة النهائية: 0%
                                             
