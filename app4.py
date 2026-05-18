@@ -31,7 +31,7 @@ def get_custom_bg():
         background-image: linear-gradient(to bottom, rgba(245, 247, 250, 0.94) 0%, rgba(240, 244, 248, 0.88) 100%), 
         url("https://drive.google.com/thumbnail?id=1qtyRtJXUvwJe8qd8HrkC_P7phD6MBiXe&sz=w1920") !important;
         background-size: cover !important;
-        background-repeat: no-repeat !repeat !important;
+        background-repeat: no-repeat !important;
         background-attachment: fixed !important;
     }
     
@@ -92,6 +92,14 @@ def get_custom_bg():
     .stButton>button:hover {
         background-color: #C5A059 !important; 
         color: #1a365d !important;
+    }
+    
+    .status-box {
+        background-color: rgba(26, 54, 93, 0.05);
+        border-right: 5px solid #10b981;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
     }
     </style>
     """
@@ -339,25 +347,68 @@ def student_space(df_students, df_reports, df_lessons):
         student_name = st.session_state.user['name']
         st.success(f"🏫 مرحباً بالتلميذ(ة): **{student_name}** | من قسم: **{st.session_state.user['class']}**")
         
-        # 🔍 جلب وتحليل سجل التلميذ الحالي مسبقاً قبل تحميل الواجهة الرسومية لقفل الأزرار ديناميكياً
+        # 🔍 [استخراج معلومات السجل والنسب المئوية فور دخول التلميذ مباشرة]
         student_all_submissions = df_reports[df_reports['الاسم'] == student_name] if not df_reports.empty else pd.DataFrame()
         submitted_lessons = student_all_submissions['الدرس'].tolist() if not student_all_submissions.empty else []
         
+        # تحضير قاموس بالنسب المسجلة لتسهيل استدعائها
+        lesson_percentages = {}
+        if not student_all_submissions.empty:
+            for _, row in student_all_submissions.iterrows():
+                lesson_percentages[row['الدرس']] = row['النسبة']
+        
+        # --- 📊 لوحة البيانات الشخصية الفورية للتلميذ ---
+        st.markdown("<div class='section-title'>📊 وضعيتك الحالية في السجل الرقمي:</div>", unsafe_allow_html=True)
+        
+        if "الدرس 1" in submitted_lessons and "الدرس 2" in submitted_lessons:
+            p1 = lesson_percentages.get("الدرس 1", "N/A")
+            p2 = lesson_percentages.get("الدرس 2", "N/A")
+            st.markdown(f"""
+            <div class='status-box' style='border-right-color: #10b981;'>
+                📢 <b>لقد قمت بإرسال صور الدرس الأول والدرس الثاني معاً مسبقاً.</b><br>
+                📉 نسبة إنجازك لـ <b>الدرس الأول</b> هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{p1}</b></span><br>
+                📉 نسبة إنجازك لـ <b>الدرس الثاني</b> هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{p2}</b></span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        elif "الدرس 1" in submitted_lessons:
+            p1 = lesson_percentages.get("الدرس 1", "N/A")
+            st.markdown(f"""
+            <div class='status-box' style='border-right-color: #f59e0b;'>
+                📢 <b>لقد قمت بإرسال صور الدرس الأول مسبقاً.</b><br>
+                📉 نسبة إنجازك للدرس الأول هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{p1}</b></span><br>
+                ⚠️ <i>المرجو الانتقال إلى تبويب الدرس الثاني لإكمال إرسال بقية الواجبات.</i>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        elif "الدرس 2" in submitted_lessons:
+            p2 = lesson_percentages.get("الدرس 2", "N/A")
+            st.markdown(f"""
+            <div class='status-box' style='border-right-color: #f59e0b;'>
+                📢 <b>لقد قمت بإرسال صور الدرس الثاني مسبقاً.</b><br>
+                📉 نسبة إنجازك للدرس الثاني هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{p2}</b></span><br>
+                ⚠️ <i>المرجو الانتقال إلى تبويب الدرس الأول لإكمال إرسال بقية الواجبات.</i>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.warning("ℹ️ لم تقم بإرسال أي دروس بعد. المرجو اختيار الدرس من التبويبات أسفله ورفع 14 صورة على الأقل.")
+
+        # --- تبويبات الدروس ---
         lesson_tabs = st.tabs(["📘 المجزوءة / الدرس 1", "📗 المجزوءة / الدرس 2", "📙 المجزوءة / الدرس 3"])
         
         for i, tab in enumerate(lesson_tabs):
             with tab:
                 l_name = f"الدرس {i+1}"
                 
-                # 🚨 [تطبيق الفحص الرادع المسبق لإخفاء أزرار التحميل والمعالجة]:
+                # 🚨 [تطبيق المنع التلقائي بناءً على البيانات المستخرجة في الأعلى]:
                 if "الدرس 1" in submitted_lessons and "الدرس 2" in submitted_lessons:
-                    st.error(f"❌ **لقد أرسلت صور الدرس الأول والثاني** مسبقاً بنجاح! لا حاجة للإرسال مرة أخرى أو تحميل أي ملفات جديدة. للتعديل، يرجى مراجعة الأستاذ.")
+                    st.error(f"❌ **تنبيه الإدارة:** لقد أرسلت صور الدرس الأول والدرس الثاني، لا حاجة للإرسال مرة أخرى. لتعديل الدروس يجب التواصل مع الأستاذ.")
                 
                 elif l_name in submitted_lessons:
-                    st.info(f"ℹ️ **لقد أرسلت صور {l_name} مسبقاً** وهي مسجلة حالياً في التقارير سحابياً بنجاح. لتعديلها يرجى التواصل مع الأستاذ.")
+                    current_p = lesson_percentages.get(l_name, "N/A")
+                    st.info(f"ℹ️ **لقد أرسلت صور {l_name} مسبقاً** بنجاح، ونسبة إنجازك المحفوظة هي: **{current_p}**. لتعديل هذا الدرس يرجى مراجعة الأستاذ.")
                 
                 else:
-                    # في حال لم يتم إرسال هذا الدرس مطلقاً، يظهر نموذج التحميل بشكل طبيعي وآمن
                     st.markdown(f"#### 📸 مركز رفع صور دفتر مادة الرياضيات - {l_name}")
                     saved_lesson_reference = get_lesson_ref(l_name, df_lessons)
                     
@@ -370,7 +421,6 @@ def student_space(df_students, df_reports, df_lessons):
                     
                     if st.button(f"بدء المعالجة والتدقيق الفوري لـ {l_name}", key=f"btn_{l_name}"):
                         if up_files:
-                            # 🚨 [الشرط الجديد: منع معالجة الصور إذا قل العدد عن 14 صورة]
                             if len(up_files) < 14:
                                 st.error(f"⚠️ **خطأ في معايير قبول الدفتر:** لقد قمت برفع ({len(up_files)}) صور فقط! ميثاق المادة يشترط رفع **14 صورة على الأقل** للدرس لضمان تدقيق المحتوى كاملاً.")
                             else:
@@ -462,7 +512,7 @@ def student_space(df_students, df_reports, df_lessons):
                                             st.markdown("### 📋 التقرير الرقمي لتدقيق الدفتر المستلم")
                                             st.info(report_text)
                                             st.success(f"تم حفظ التقرير بنجاح! نسبة الإنجاز المسجلة للأستاذ: {calculated_percentage} ✅")
-                                            st.rerun() # إعادة تحديث لقفل الواجهة للدرس فوراً بعد النجاح
+                                            st.rerun() 
                                             
                                         except Exception as gemini_err:
                                             st.error(f"❌ حدث خطأ أثناء فحص الدفتر: {gemini_err}")
