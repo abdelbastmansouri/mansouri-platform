@@ -138,6 +138,8 @@ def upload_pdf_to_drive(file_name, file_bytes):
 def calculate_image_hash(file_bytes):
     return hashlib.md5(file_bytes).hexdigest()
 
+# 💡 تم تفعيل التخزين المؤقت لمدة 15 ثانية لتقليل الضغط على حواسب جوجل وحل مشكلة الـ Quota نهائياً
+@st.cache_data(ttl=50)
 def load_data():
     sh = None
     for attempt in range(4):
@@ -225,6 +227,7 @@ with st.sidebar:
         st.divider()
         if st.button("🚪 تسجيل الخروج", use_container_width=True):
             for key in list(st.session_state.keys()): del st.session_state[key]
+            st.cache_data.clear() # مسح الذاكرة عند الخروج
             st.rerun()
     else:
         menu = st.radio(label="اختر الفضاء المستهدف:", options=["فضاء التلميذات والتلاميذ", "فضاء الإدارة والأستاذ"])
@@ -289,6 +292,7 @@ def admin_space(df_students, df_reports, df_lessons):
                     if not updated: rows.append([lesson_choice, full_reference_text, datetime.now().strftime("%Y-%m-%d %H:%M")])
                     ws_lessons.clear()
                     ws_lessons.update([headers] + rows)
+                    st.cache_data.clear() # تنظيف الذاكرة لرؤية المرجع الجديد فوراً
                     st.success(f"🎉 تم تحديث سجل المرجع بنجاح!")
                 except Exception as ex:
                     st.error(f"خطأ أثناء تحديث الإكسيل: {ex}")
@@ -347,17 +351,14 @@ def student_space(df_students, df_reports, df_lessons):
         student_name = st.session_state.user['name']
         st.success(f"🏫 مرحباً بالتلميذ(ة): **{student_name}** | من قسم: **{st.session_state.user['class']}**")
         
-        # 🔍 [استخراج معلومات السجل والنسب المئوية فور دخول التلميذ مباشرة]
         student_all_submissions = df_reports[df_reports['الاسم'] == student_name] if not df_reports.empty else pd.DataFrame()
         submitted_lessons = student_all_submissions['الدرس'].tolist() if not student_all_submissions.empty else []
         
-        # تحضير قاموس بالنسب المسجلة لتسهيل استدعائها
         lesson_percentages = {}
         if not student_all_submissions.empty:
             for _, row in student_all_submissions.iterrows():
                 lesson_percentages[row['الدرس']] = row['النسبة']
         
-        # --- 📊 لوحة البيانات الشخصية الفورية للتلميذ ---
         st.markdown("<div class='section-title'>📊 وضعيتك الحالية في السجل الرقمي:</div>", unsafe_allow_html=True)
         
         if "الدرس 1" in submitted_lessons and "الدرس 2" in submitted_lessons:
@@ -393,14 +394,12 @@ def student_space(df_students, df_reports, df_lessons):
         else:
             st.warning("ℹ️ لم تقم بإرسال أي دروس بعد. المرجو اختيار الدرس من التبويبات أسفله ورفع 14 صورة على الأقل.")
 
-        # --- تبويبات الدروس ---
         lesson_tabs = st.tabs(["📘 المجزوءة / الدرس 1", "📗 المجزوءة / الدرس 2", "📙 المجزوءة / الدرس 3"])
         
         for i, tab in enumerate(lesson_tabs):
             with tab:
                 l_name = f"الدرس {i+1}"
                 
-                # 🚨 [تطبيق المنع التلقائي بناءً على البيانات المستخرجة في الأعلى]:
                 if "الدرس 1" in submitted_lessons and "الدرس 2" in submitted_lessons:
                     st.error(f"❌ **تنبيه الإدارة:** لقد أرسلت صور الدرس الأول والدرس الثاني، لا حاجة للإرسال مرة أخرى. لتعديل الدروس يجب التواصل مع الأستاذ.")
                 
@@ -431,6 +430,7 @@ def student_space(df_students, df_reports, df_lessons):
                                         f.seek(0)
                                         current_hashes.append(calculate_image_hash(f_bytes))
                                     
+                                    # 🚨 هنا نقرأ البيانات اللحظية مباشرة عند الحفظ والتحقق من الغش لتفادي التكرار
                                     try:
                                         client = get_gspread_client()
                                         live_sh = client.open("les classes").worksheet("Reports")
@@ -445,7 +445,6 @@ def student_space(df_students, df_reports, df_lessons):
                                         st.error(f"❌ تعذر الاتصال بالسيرفر للتحقق: {check_err}")
                                         st.stop()
                                 
-                                # فحص السرقة والغش بين التلاميذ بالبصمات الرقمية
                                 cheater_detected = False
                                 original_student_name = ""
                                 
@@ -509,6 +508,7 @@ def student_space(df_students, df_reports, df_lessons):
                                                 hashes_to_save
                                             ])
                                             
+                                            st.cache_data.clear() # مسح الكاش فور الإرسال لضمان تحديث حالة التلميذ في اللوحة فوراً
                                             st.markdown("### 📋 التقرير الرقمي لتدقيق الدفتر المستلم")
                                             st.info(report_text)
                                             st.success(f"تم حفظ التقرير بنجاح! نسبة الإنجاز المسجلة للأستاذ: {calculated_percentage} ✅")
