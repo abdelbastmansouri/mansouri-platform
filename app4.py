@@ -506,6 +506,7 @@ def student_space(df_students, df_lessons):
                                 st.markdown("### 📋التقرير الرقمي لتدقيق الدفتر المستلم")
                                 st.info(res.text)
                                 st.success("تم حفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
+                            
                             except Exception as gemini_err:
                             st.error(f"❌ حدث خطأ أثناء فحص الدفتر برمجياً: {gemini_err}")
                     else:
