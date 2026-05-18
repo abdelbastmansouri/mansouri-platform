@@ -177,9 +177,9 @@ def load_data():
                 if col in ["إسم", "اسم", "اسم التلميذ", "إسم التلميذ"]:
                     df_reports = df_reports.rename(columns={col: "الاسم"})
         else:
-            df_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
+            df_reports = pd.DataFrame(columns=["التاريخ", "رقم مسار", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
     except:
-        df_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
+        df_reports = pd.DataFrame(columns=["التاريخ", "رقم مسار", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
         
     try:
         lessons_worksheet = sh.worksheet("Lessons")
@@ -351,23 +351,28 @@ def student_space(df_students, df_reports, df_lessons):
                 ]
                 if not matched_student.empty:
                     st.session_state.auth = True
-                    # حفظ الاسم نظيفاً بدون فراغات جانبية خفية
-                    st.session_state.user = {"name": str(matched_student.iloc[0][col_name]).strip(), "class": sel_class}
+                    # حفظ الاسم ورقم مسار نظيفاً بدون فراغات خفية في الجلسة المفتوحة
+                    st.session_state.user = {
+                        "name": str(matched_student.iloc[0][col_name]).strip(), 
+                        "class": sel_class,
+                        "massar": input_massar.strip().upper()
+                    }
                     st.success("🎉 تم التحقق من الهوية بنجاح!")
                     st.rerun()
                 else:
                     st.error("❌ عذراً، المعلومات المدخلة غير متطابقة.")
     else:
         student_name = st.session_state.user['name']
-        st.success(f"🏫 مرحباً بالتلميذ(ة): **{student_name}** | من قسم: **{st.session_state.user['class']}**")
+        student_massar = st.session_state.user.get('massar', '')
+        st.success(f"🏫 مرحباً بالتلميذ(ة): **{student_name}** | رقم مسار: **{student_massar}** | القسم: **{st.session_state.user['class']}**")
         
-        # --- 🛠️ الميثاق المطور لفلترة السجلات وإزالة الفراغات المسببة للثغرة ---
+        # --- 🛠️ الميثاق المطور لفلترة السجلات بواسطة رقم مسار وإزالة فراغات الثغرة ---
         student_all_submissions = pd.DataFrame()
-        if not df_reports.empty and 'الاسم' in df_reports.columns:
-            # تنظيف عمود الأسماء وعمود الدروس في قاعدة البيانات مؤقتاً للتأكد من المطابقة التامة
-            df_reports['الاسم_نظيف'] = df_reports['الاسم'].astype(str).str.strip()
+        if not df_reports.empty and 'رقم مسار' in df_reports.columns:
+            # تنظيف عمود مسار وعمود الدرس في السجلات للتأكد من المطابقة التامة
+            df_reports['مسار_نظيف'] = df_reports['رقم مسار'].astype(str).str.strip().str.upper()
             df_reports['الدرس_نظيف'] = df_reports['الدرس'].astype(str).str.strip()
-            student_all_submissions = df_reports[df_reports['الاسم_نظيف'] == student_name]
+            student_all_submissions = df_reports[df_reports['مسار_نظيف'] == student_massar.upper()]
             
         submitted_lessons = student_all_submissions['الدرس_نظيف'].tolist() if not student_all_submissions.empty else []
         
@@ -452,7 +457,7 @@ def student_space(df_students, df_reports, df_lessons):
                                                 if col in ["اسم", "إسم", "اسم التلميذ", "إسم التلميذ"]:
                                                     df_live_reports = df_live_reports.rename(columns={col: "الاسم"})
                                         else:
-                                            df_live_reports = pd.DataFrame(columns=["التاريخ", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
+                                            df_live_reports = pd.DataFrame(columns=["التاريخ", "رقم مسار", "الاسم", "القسم", "الدرس", "التقرير", "النسبة", "بصمات_الصور"])
                                     except Exception as check_err:
                                         st.error(f"❌ تعذر الاتصال بالسيرفر للتحقق: {check_err}")
                                         st.stop()
@@ -461,9 +466,13 @@ def student_space(df_students, df_reports, df_lessons):
                                 original_student_name = ""
                                 
                                 if "بصمات_الصور" in df_live_reports.columns:
-                                    df_live_reports['الاسم_نظيف'] = df_live_reports['الاسم'].astype(str).str.strip()
+                                    if "رقم مسار" in df_live_reports.columns:
+                                        df_live_reports['مسار_نظيف'] = df_live_reports['رقم مسار'].astype(str).str.strip().str.upper()
+                                    else:
+                                        df_live_reports['مسار_نظيف'] = ""
+                                        
                                     for idx, row in df_live_reports.iterrows():
-                                        if row['الاسم_نظيف'] == student_name:
+                                        if str(row['مسار_نظيف']) == student_massar.upper():
                                             continue
                                         saved_hashes_str = str(row['بصمات_الصور']).strip()
                                         if saved_hashes_str:
@@ -471,7 +480,7 @@ def student_space(df_students, df_reports, df_lessons):
                                             for current_h in current_hashes:
                                                 if current_h in saved_hashes_list:
                                                     cheater_detected = True
-                                                    original_student_name = row['الاسم']
+                                                    original_student_name = row['الاسم'] if 'الاسم' in row else "تلميذ آخر"
                                                     break
                                         if cheater_detected: break
 
@@ -490,7 +499,7 @@ def student_space(df_students, df_reports, df_lessons):
                                             
                                             المرجع والمخطط الملزم الذي حدده الأستاذ لك هو:
                                             \"\"\"{saved_lesson_reference}\"\"\"
-                  
+                                  
                                             🚨 معيار صارم وحاسم ضد الغش: 
                                             قم بفحص الصور المرفوعة بصرياً بدقة. إذا لاحظت أن التلميذ قام برفع "صورتين أو أكثر مكررتين لنفس الصفحة تماماً" (سواء أخذ لقطة شاشة مرتين، أو صور نفس الصفحة من زاويتين مختلفتين لخداع النظام وزيادة عدد الصور لكي يصل لـ 14 صورة)، فقم فوراً بما يلي:
                                             1. اكتب تقريراً حازماً وموجزاً وتوبيخياً تخبره فيه بأنه تم رصد محاولة تكرار صور لخداع النظام ومخالفة ميثاق المادة.
@@ -517,14 +526,16 @@ def student_space(df_students, df_reports, df_lessons):
 
                                             hashes_to_save = ",".join(current_hashes)
 
+                                            # إضافة السجل المكون من 8 عناصر بالترتيب المطابق لملف الإكسيل
                                             live_sh.append_row([
-                                                datetime.now().strftime("%Y-%m-%d"), 
-                                                student_name, 
-                                                st.session_state.user['class'], 
-                                                l_name, 
-                                                report_text, 
-                                                calculated_percentage,
-                                                hashes_to_save
+                                                datetime.now().strftime("%Y-%m-%d"),          # العمود A: التاريخ
+                                                student_massar.upper(),                       # العمود B: رقم مسار
+                                                student_name,                                 # العمود C: الاسم
+                                                st.session_state.user['class'],               # العمود D: القسم
+                                                l_name,                                       # العمود E: الدرس
+                                                report_text,                                  # العمود F: التقرير
+                                                calculated_percentage,                        # العمود G: النسبة
+                                                hashes_to_save                                # العمود H: بصمات_الصور
                                             ])
                                             
                                             st.cache_data.clear()
