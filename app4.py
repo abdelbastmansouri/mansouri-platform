@@ -482,7 +482,7 @@ def student_space(df_students, df_lessons):
                                     
                                     المرجع والمخطط الملزم الذي حدده الأستاذ لك هو الرابط أو التفاصيل التالية:
                                     \"\"\"{saved_lesson_reference}\"\"\"
-                                    
+      
                                     المهام والقيود الإلزامية المطلوبة منك أثناء التدقيق:
                                     1. اعتمد البنية العلمية والفقرات الأساسية المعتمدة في هذا الدرس المرجعي المرفق في الرابط (مثل تعاريف، خاصيات، وأنشطة حساب المثلثات للجذع المشترك علمي).
                                     2. قارن العناوين والفقرات المكتوبة في الدفتر بخط يد التلميذ مع محتوى الدرس للتأكد من نقل الدرس كاملاً وبأمانة وبدون نقص.
@@ -490,52 +490,49 @@ def student_space(df_students, df_lessons):
                                     4. نسبة كتابة الدرس بلون عريض
                                     صغ الرد باللغة العربية بأسلوب تربوي رصين ومباشر، وابدأ بالتدقيق فوراً وبدون أي اعتذارات عن الرابط.
                                     """
-                                    # هنا يستكمل كود الإرسال إلى الجيميني وحفظ التقرير الجديد...
-except Exception as e:
-st.error(f"حدث خطأ أثناء إعداد التدقيق: {e}")
-else:
-
-st.error("الرجاء تحميل صور الدرس أولاً.")
-
-model = genai.GenerativeModel("gemini-2.5-flash")
-imgs = [Image.open(f) for f in up_files]
-res = model.generate_content([prompt_instructions, *imgs])
-
-client = get_gspread_client()
-sh = client.open("les classes").worksheet("Reports")
-sh.append_row([datetime.now().strftime("%Y-%m-%d"), st.session_state.user['name'], st.session_state.user['class'], l_name, res.text, "تم التدقيق بنجاح"])
-
-st.markdown("### 📋التقرير الرقمي لتدقيق الدفتر المستلم")
-st.info(res.text)
-st.success("تم حفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
-except Exception as gemini_err:
-st.error(f"❌ حدث خطأ أثناء فحص الدفتر برمجياً: {gemini_err}")
-else:
-st.warning("⚠️ المرجو تزويد المنصة بصور الدفتر أولاً.")
-
-# --- 5. منطق توزيع مسارات العرض ---
-if st.session_state.role == "student":
-    student_space(df_students, df_lessons)
-elif st.session_state.role == "admin":
-    if not st.session_state.auth:
-        st.markdown("<div class='section-title'>🔑 فضاء الأستاذ والإدارة التربوية</div>", unsafe_allow_html=True)
-        admin_pwd = st.text_input("الرجاء إدخال كلمة سر الولوج الإدارية المخصصة:", type="password")
-        
-        if st.button("تأكيد الهوية 👨‍🏫", use_container_width=True):
-            # 🔐 قراءة كلمة المرور بأمان مطلق من Streamlit Secrets
-            try:
-                correct_password = st.secrets["credentials"]["prof_password"]
-                
-                if admin_pwd == correct_password:
-                    st.session_state.auth = True
-                    st.session_state.user = {"name": "الأستاذ عبد الباسط المنصوري"}
-                    st.success("مرحباً بك يا أستاذ!")
-                    st.rerun()
-                else: 
-                    st.error("❌ رمز المرور الإداري غير صحيح.")
-                    
-            except KeyError:
-                # رسالة أمنية مشفرة تظهر لك فقط إذا نسيت ضبط الإعدادات في المنصة
-                st.error("⚙️ خطأ في النظام: لم يتم ضبط مفاتيح الحماية بنجاح في لوحة التحكم.")
-    else: 
-        admin_space(df_students, df_reports, df_lessons)
+                     # هنا يستكمل كود الإرسال إلى الجيميني وحفظ التقرير الجديد...
+                            except Exception as e:
+                                st.error(f"حدث خطأ أثناء إعداد التدقيق: {e}")
+                            else:
+                                st.error("الرجاء تحميل صور الدرس أولاً.")
+                                
+                                model = genai.GenerativeModel("gemini-2.5-flash")
+                                imgs = [Image.open(f) for f in up_files]
+                                res = model.generate_content([prompt_instructions, *imgs])
+                                
+                                client = get_gspread_client()
+                                sh = client.open("les classes").worksheet("Reports")
+                                sh.append_row([datetime.now().strftime("%Y-%m-%d"), st.session_state.user['name'], st.session_state.user['class'], l_name, res.text, "تم التدقيق بنجاح"])
+                                st.markdown("### 📋التقرير الرقمي لتدقيق الدفتر المستلم")
+                                st.info(res.text)
+                                st.success("تم حفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
+                            except Exception as gemini_err:
+                            st.error(f"❌ حدث خطأ أثناء فحص الدفتر برمجياً: {gemini_err}")
+                    else:
+                        st.warning("⚠️ المرجو تزويد المنصة بصور الدفتر أولاً.")                        
+                        # --- 5. منطق توزيع مسارات العرض ---
+                        if st.session_state.role == "student":
+                            student_space(df_students, df_lessons)
+                        elif st.session_state.role == "admin":
+                            if not st.session_state.auth:
+                                st.markdown("<div class='section-title'>🔑 فضاء الأستاذ والإدارة التربوية</div>", unsafe_allow_html=True)
+                                admin_pwd = st.text_input("الرجاء إدخال كلمة سر الولوج الإدارية المخصصة:", type="password")
+                             # 🔐 قراءة كلمة المرور بأمان مطلق من Streamlit Secrets   
+                                if st.button("تأكيد الهوية 👨‍🏫", use_container_width=True):
+                                 # 🔐 قراءة كلمة المرور بأمان مطلق من Streamlit Secrets   
+                                    try:
+                                        correct_password = st.secrets["credentials"]["prof_password"]
+                                        
+                                        if admin_pwd == correct_password:
+                                            st.session_state.auth = True
+                                            st.session_state.user = {"name": "الأستاذ عبد الباسط المنصوري"}
+                                            st.success("مرحباً بك يا أستاذ!")
+                                            st.rerun()
+                                        else: 
+                                            st.error("❌ رمز المرور الإداري غير صحيح.")
+                             # رسالة أمنية مشفرة تظهر لك فقط إذا نسيت ضبط الإعدادات في المنصة               
+                                    except KeyError:
+                                        
+                                        st.error("⚙️ خطأ في النظام: لم يتم ضبط مفاتيح الحماية بنجاح في لوحة التحكم.")
+                                    else: 
+                                        admin_space(df_students, df_reports, df_lessons)
