@@ -19,17 +19,50 @@ st.set_page_config(
     page_icon="math🇲🇦"
 )
 
-# دالة الخلفية السحابية المحدثة لجلب صورة الزخرفة مباشرة من Google Drive
+# دالة الخلفية السحابية المحدثة مع جلب الخط العربي المطور وتطبيقه على المنصة
 def get_custom_bg():
-    # اعتماد رابط الصورة السحابية المباشر كخلفية مائية ممتدة وخفيفة خلف الأكواد
     return """
     <style>
+    /* جلب الخط العربي الأميري الفخم من جوجل */
+    @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+    
     html, body, [data-testid="stAppViewContainer"], .stApp {
         background-image: linear-gradient(to bottom, rgba(245, 247, 250, 0.94) 0%, rgba(240, 244, 248, 0.88) 100%), 
         url("https://drive.google.com/thumbnail?id=1qtyRtJXUvwJe8qd8HrkC_P7phD6MBiXe&sz=w1920") !important;
         background-size: cover !important;
         background-repeat: no-repeat !important;
         background-attachment: fixed !important;
+    }
+    
+    /* تطبيق الخط العربي الأميري الجميل على التطبيق بالكامل */
+    * {
+        font-family: 'Amiri', serif !important;
+    }
+    
+    /* كلاس خاص لتنسيق العناوين باللون الذهبي الملكي اللامع مع ظلال احترافية بارزة */
+    .golden-title {
+        color: #FFD700 !important;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7) !important;
+        font-weight: bold !important;
+        text-align: center;
+    }
+    
+    .golden-sub {
+        color: #F1C40F !important;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6) !important;
+        text-align: center;
+        font-size: 1.3rem !important;
+    }
+    
+    /* العناوين الجانبية وفقرات الأقسام باللون الذهبي العتيق */
+    .section-title {
+        color: #C5A059 !important;
+        font-weight: bold !important;
+        font-size: 1.6rem !important;
+        border-bottom: 2px solid #C5A059;
+        padding-bottom: 5px;
+        margin-bottom: 15px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
     }
     
     /* تحسين مظهر القائمة الجانبية باللون الكحلي الملكي للوزارة */
@@ -44,32 +77,33 @@ def get_custom_bg():
         backdrop-filter: blur(8px) !important;
         -webkit-backdrop-filter: blur(8px) !important;
         border-radius: 12px !important;
-        border: 1px solid rgba(212, 175, 55, 0.35) !important;
+        border: 1px solid rgba(197, 160, 89, 0.4) !important;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
     }
 
     /* العناوين والنصوص التربوية باللون الأزرق الملكي الغامق */
     h1, h2, h3, label, .stMarkdown p { 
         color: #1a365d !important; 
-        font-family: 'Segoe UI', sans-serif !important; 
         font-weight: bold !important; 
     }
     
-    /* تنسيق خاص وعصري للأزرار تفاعلياً */
+    /* تنسيق خاص وعصري للأزرار تفاعلياً بجعل النص ذهبياً فخماً */
     .stButton>button {
         background-color: #1a365d !important; 
-        color: white !important;
+        color: #FFD700 !important;
         border-radius: 8px !important; 
-        border: 1px solid #d4af37 !important;
+        border: 1px solid #C5A059 !important;
         padding: 10px 24px !important;
         font-weight: bold !important;
+        font-size: 1.2rem !important;
         transition: all 0.2s ease;
         width: 100%;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
     }
     .stButton>button:hover {
-        background-color: #d4af37 !important; 
+        background-color: #C5A059 !important; 
         color: #1a365d !important;
-        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+        box-shadow: 0 4px 12px rgba(197, 160, 89, 0.4) !important;
     }
     </style>
     """
@@ -165,7 +199,6 @@ df_students, df_reports, df_lessons = load_data()
 
 # دالة جلب رابط الدرس المباشر والثابت سحابياً
 def get_lesson_ref(lesson_name, df_lessons):
-    # الروابط المباشرة لملفات الـ PDF المستضافة على جوجل درايف
     DRIVE_LINKS = {
         "الدرس 1": "https://drive.google.com/file/d/1WiHUq1rTQPX-VdzKvB6BT50K_vP3ZaQt/view?usp=sharing",
         "الدرس 2": "https://drive.google.com/file/d/1XMLhrjUkjzTQuUYKqNGj-BslSFSztKyz/view?usp=sharing",
@@ -190,8 +223,8 @@ with st.sidebar:
     st.markdown("""
         <div style='text-align: center; padding: 10px;'>
             <img src='https://img.icons8.com/color/120/000000/education.png' style='border-radius: 50%; background: white; padding: 10px; width: 80px;'/>
-            <h3 style='color: white !important; font-size: 1.1rem; margin-top: 10px;'>وزارة التربية الوطنية والتعليم الأولي والرياضة</h3>
-            <p style='color: #94a3b8 !important; font-size: 0.8rem;'>الأكاديمية الجهوية للتربية والتكوين</p>
+            <h3 style='color: #FFD700 !important; font-size: 1.3rem; margin-top: 10px; text-shadow: 1px 1px 2px black;'>وزارة التربية الوطنية والتعليم الأولي والرياضة</h3>
+            <p style='color: #cbd5e1 !important; font-size: 0.95rem;'>الأكاديمية الجهوية للتربية والتكوين</p>
         </div>
     """, unsafe_allow_html=True)
     st.divider()
@@ -206,23 +239,24 @@ with st.sidebar:
             for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
     else:
-        st.write("⚙️ **توجيه المسار الرقمي:**")
-        menu = st.radio("اختر الفضاء المستهدف:", ["🏠 فضاء التلميذ والطالبات", "🔑 فضاء الإدارة والأستاذ"])
+        # تطبيق التنسيق والخط العربي واللون الذهبي على "توجيه المسار الرقمي"
+        st.markdown("<p style='color: #FFD700 !important; font-size: 1.3rem; text-shadow: 1px 1px 2px black; font-weight: bold; margin-bottom:0px;'>⚙️ توجيه المسار الرقمي:</p>", unsafe_allow_html=True)
+        menu = st.radio("", ["🏠 فضاء التلميذ والطالبات", "🔑 فضاء الإدارة والأستاذ"])
         st.session_state.role = "student" if "التلميذ" in menu else "admin"
 
 # --- 3. واجهة الأستاذ ---
 def admin_space(df_students, df_reports, df_lessons):
     st.markdown("""
-        <div style='background: linear-gradient(##008E8E, #1a365d 0%, #FF0921 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; border: 1px solid #05fcf0;'>
-            <h1 style='color: ##05fcf0 !important; margin: 0; font-size: 2rem;'>👨‍🏫 الفضاء الرقمي للتدقيق الإداري والتربوي</h1>
-            <p style='color: #cbd5e1; margin-top: 5px; font-size: 1rem;'>مرحباً بك يا أستاذ عبد الباسط المنصوري - تتبع ذكي ومقاومة شاملة لنسخ وتكرار دفاتر التلاميذ</p>
+        <div style='background: linear-gradient(##008E8E, #1a365d 0%, #FF0921 100%); padding: 30px; border-radius: 15px; margin-bottom: 25px; color: white; border: 2px solid #C5A059;'>
+            <h1 class='golden-title' style='font-size: 2.3rem;'>👨‍🏫 الفضاء الرقمي للتدقيق الإداري والتربوي</h1>
+            <p class='golden-sub'>مرحباً بك يا أستاذ عبد الباسط المنصوري - تتبع ذكي ومقاومة شاملة لنسخ وتكرار دفاتر التلاميذ</p>
         </div>
     """, unsafe_allow_html=True)
     
     tab1, tab2, tab3, tab4 = st.tabs(["📊 لوحة الإحصائيات", "📂 إضافة ورفع الدروس المرجعية", "👥 تتبع سجلات التلاميذ", "⚙️ الإعدادات"])
     
     with tab1:
-        st.markdown("### 📈 المؤشرات التربوية العامة")
+        st.markdown("<div class='section-title'>📈 المؤشرات التربوية العامة</div>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns(3)
         with col1: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>إجمالي التلاميذ</p><h2 style='margin:0; color:#1a365d;'>👥 {len(df_students)}</h2></div>", unsafe_allow_html=True)
         with col2: st.markdown(f"<div class='metric-card'><p style='color:#64748b; font-weight:bold;'>الدفاتر المدققة</p><h2 style='margin:0; color:#1a365d;'>📥 {len(df_reports)}</h2></div>", unsafe_allow_html=True)
@@ -235,7 +269,7 @@ def admin_space(df_students, df_reports, df_lessons):
             st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
-        st.markdown("### 📂 مركز إدارة المراجع السحابية")
+        st.markdown("<div class='section-title'>📂 مركز إدارة المراجع السحابية</div>", unsafe_allow_html=True)
         lesson_choice = st.selectbox("اختر الدرس المستهدف بالتحديث أو الإضافة:", ["الدرس 1", "الدرس 2", "الدرس 3"])
         current_ref = get_lesson_ref(lesson_choice, df_lessons)
         st.info(f"📋 المرجع الحالي المحفوظ سحابياً للدرس:\n\n{current_ref}")
@@ -275,7 +309,7 @@ def admin_space(df_students, df_reports, df_lessons):
                 st.rerun()
 
     with tab3:
-        st.markdown("### 👥 تتبع السجل الأكاديمي للتلاميذ")
+        st.markdown("<div class='section-title'>👥 تتبع السجل الأكاديمي للتلاميذ</div>", unsafe_allow_html=True)
         if not df_students.empty:
             col_search = 'اسم التلميذ' if 'اسم التلميذ' in df_students.columns else df_students.columns[1]
             search_name = st.selectbox("اختر اسم التلميذ(ة):", df_students[col_search].unique())
@@ -284,135 +318,8 @@ def admin_space(df_students, df_reports, df_lessons):
             else: st.info("لا توجد إرسالات مسجلة لهذا التلميذ حتى الآن.")
 
     with tab4:
-        st.markdown("### ⚙️ إعدادات الصيانة والأمان")
+        st.markdown("<div class='section-title'>⚙️ إعدادات الصيانة والأمان</div>", unsafe_allow_html=True)
         st.info("لإدارة وحذف السجلات يرجى مراجعة ملف Google Sheets مباشرة لضمان حماية البيانات.")
 
 # --- 4. واجهة التلميذ الاحترافية والأمنة (بالحفاظ على الخصوصية) ---
-def student_space(df_students, df_lessons):
-    st.markdown("""
-        <div style='background: linear-gradient(135deg, #10b981 0%, #1a365d 100%); padding: 35px; border-radius: 15px; margin-bottom: 25px; color: white; text-align: center; border: 1px solid #d4af37;'>
-            <h2 style='color: #ffffff !important; margin: 0; font-size: 2.2rem; font-weight: bold;'>🇲🇦 الفضاء الرقمي للتلميذات والتلاميذ</h2>
-            <p style='color: #e2e8f0; margin-top: 8px; font-size: 1.1rem;'>منصة الآمان والتدقيق الفوري للدفاتر المدرسية لضمان التميز الأكاديمي</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    if df_students.empty:
-        st.warning("🔄 جاري تهيئة الاتصال السحابي الآمن...")
-        return
-
-    # تنظيف وتجهيز أسماء الأعمدة لتفادي الأخطاء المطبعية
-    df_students.columns = df_students.columns.str.strip()
-    col_class = 'القسم'
-    col_name = 'اسم التلميذ'
-    col_id = 'رقم التلميذ'  # يمثل رقم مسار
-    col_birth = 'تاريخ الإزدياد' # يمثل تاريخ الازدياد
-
-    if not st.session_state.auth:
-        st.markdown("### 🔑 تسجيل الدخول الآمن لمنظومة التدقيق")
-        
-        # اختيار القسم أولاً لفلترة التحقق
-        sel_class = st.selectbox("الرجاء تحديد قسمك الفعلي:", ["---"] + df_students[col_class].unique().tolist())
-        
-        col_input1, col_input2 = st.columns(2)
-        # إدخال رقم مسار يدوياً لحماية الخصوصية
-        input_massar = col_input1.text_input("أدخل رقم مسار الخاص بك (مثال: K123456):", help="اكتب الحرف كبيراً Capital").strip()
-        # إدخال تاريخ الازدياد يدوياً
-        input_birth = col_input2.text_input("أدخل تاريخ ازديادك الموثق ( الصيغة المطلوبة سنة ـ شهرـ يوم ):", placeholder="مثال: 2010-06-23 ").strip()
-        
-        if st.button("التحقق والولوج الآمن للمنصة 🚀", use_container_width=True):
-            if sel_class != "---" and input_massar and input_birth:
-                # الفلترة داخل القسم المحدد بحثاً عن التطابق الثنائي لـ (رقم مسار + تاريخ الازدياد)
-                matched_student = df_students[
-                    (df_students[col_class] == sel_class) & 
-                    (df_students[col_id].str.strip().str.upper() == input_massar.upper()) & 
-                    (df_students[col_birth].str.strip() == input_birth)
-                ]
-                
-                if not matched_student.empty:
-                    # جلب اسم التلميذ الحقيقي للترحيب به داخلياً دون عرضه للعامة في القوائم
-                    real_name = matched_student.iloc[0][col_name]
-                    st.session_state.auth = True
-                    st.session_state.user = {"name": real_name, "class": sel_class}
-                    st.success("🎉 تم التحقق من الهوية بنجاح!")
-                    st.rerun()
-                else:
-                    st.error("❌ عذراً، المعلومات المدخلة غير متطابقة مع سجلات القسم الحالي. يرجى التثبت من الحروف والتواريخ.")
-            else:
-                st.warning("⚠️ المرجو تعبئة كافة الحقول بدقة.")
-                    
-    else:
-        # واجهة التلميذ الداخلية بعد تسجيل الدخول بنجاح
-        st.success(f"🏫 مرحباً بك يا تلميذ(ة): **{st.session_state.user['name']}** | القسم الفعلي: **{st.session_state.user['class']}**")
-        
-        lesson_tabs = st.tabs(["📘 المجزوءة / الدرس 1", "📗 المجزوءة / الدرس 2", "📙 المجزوءة / الدرس 3"])
-        
-        for i, tab in enumerate(lesson_tabs):
-            with tab:
-                l_name = f"الدرس {i+1}"
-                st.markdown(f"#### 📸 مركز رفع صور دفتر مادة الرياضيات - {l_name}")
-                
-                saved_lesson_reference = get_lesson_ref(l_name, df_lessons)
-                up_files = st.file_uploader(f"اختر صور صفحات الدفتر لـ {l_name}", accept_multiple_files=True, key=f"up_{l_name}", type=['jpg','jpeg','png'])
-                
-                if st.button(f"بدء المعالجة والتدقيق الفوري لـ {l_name}", key=f"btn_{l_name}"):
-                    if up_files:
-                        with st.spinner("🔄 جاري سحب المرجع التربوي السحابي الثابت وفحص الدفتر..."):
-                            try:
-                                clean_ref = saved_lesson_reference.strip()
-                                is_ref_empty = "N/A" in clean_ref or clean_ref == "" or "لا توجد ملاحظات" in clean_ref
-
-                                if is_ref_empty:
-                                    prompt_instructions = f"""
-                                    أنت مساعد أستاذ رياضيات عبقري ومراقب تربوي محفز بالثانوية التأهلية المغربية.
-                                    التلميذ {st.session_state.user['name']} (القسم: {st.session_state.user['class']}) أرسل صور واجباته لدرس ({l_name}).
-
-                                    قم بتدقيق الصور بناءً على المعارف القياسية المقررة في المنهاج المغربي لمستوى الجذع المشترك علمي (TCS) لدرس {l_name}.
-                                    تأكد من وجود مجهود فعلي وحلول للتمارين، وصغ تقريراً مشجعاً يوضح الفقرات المكتوبة وصحة الحلول الرياضية.
-                                    """
-                                else:
-                                    prompt_instructions = f"""
-                                    أنت مساعد أستاذ رياضيات عبقري ومراقب صارم جداً مكلف بكشف الغش وتدقيق الدفاتر بالثانوية التأهيلية. 
-                                    التلميذ {st.session_state.user['name']} (القسم: {st.session_state.user['class']}) أرسل صور دفتره لدرس ({l_name}).
-
-                                    المرجع والمخطط الملزم الذي حدده الأستاذ لك هو الرابط أو التفاصيل التالية:
-                                    \"\"\"{saved_lesson_reference}\"\"\"
-
-                                    المهام والقيود الإلزامية المطلوبة منك أثناء التدقيق:
-                                    1. اعتمد البنية العلمية والفقرات الأساسية المعتمدة في هذا الدرس المرجعي المرفق في الرابط (مثل تعاريف، خاصيات، وأنشطة حساب المثلثات للجذع المشترك علمي).
-                                    2. قارن العناوين والفقرات المكتوبة في الدفتر بخط يد التلميذ مع محتوى الدرس للتأكد من نقل الدرس كاملاً وبأمانة وبدون نقص.
-                                    3. راجع التمارين التطبيقية المنجزة وتأكد من صحتها الرياضية.
-                                    4. نسبة كتابة الدرس بلون عريض
-                                    صغ الرد باللغة العربية بأسلوب تربوي رصين ومباشر، وابدأ بالتدقيق فوراً وبدون أي اعتذارات عن الرابط.
-                                    """
-                                
-                                model = genai.GenerativeModel("gemini-2.5-flash")
-                                imgs = [Image.open(f) for f in up_files]
-                                res = model.generate_content([prompt_instructions, *imgs])
-                                
-                                client = get_gspread_client()
-                                sh = client.open("les classes").worksheet("Reports")
-                                sh.append_row([datetime.now().strftime("%Y-%m-%d"), st.session_state.user['name'], st.session_state.user['class'], l_name, res.text, "تم التدقيق بنجاح"])
-                                
-                                st.markdown("### 📋التقرير الرقمي لتدقيق الدفتر المستلم")
-                                st.info(res.text)
-                                st.success("تم حفظ التقرير التربوي في سجلات الأستاذ السحابية بنجاح ✅")
-                            except Exception as gemini_err:
-                                st.error(f"❌ حدث خطأ أثناء فحص الدفتر برمجياً: {gemini_err}")
-                    else:
-                        st.warning("⚠️ المرجو تزويد المنصة بصور الدفتر أولاً.")
-
-# --- 5. منطق توزيع مسارات العرض ---
-if st.session_state.role == "student":
-    student_space(df_students, df_lessons)
-elif st.session_state.role == "admin":
-    if not st.session_state.auth:
-        st.markdown("<h3 style='color: #1a365d;'>🔑 فضاء الأستاذ والإدارة التربوية</h3>", unsafe_allow_html=True)
-        admin_pwd = st.text_input("الرجاء إدخال كلمة سر الولوج الإدارية المخصصة:", type="password")
-        if st.button("تأكيد الهوية 👨‍🏫", use_container_width=True):
-            if admin_pwd == "1234":
-                st.session_state.auth = True
-                st.session_state.user = {"name": "الأستاذ عبد الباسط المنصوري"}
-                st.success("مرحباً بك يا أستاذ!")
-                st.rerun()
-            else: st.error("❌ رمز المرور الإداري غير صحيح.")
-    else: admin_space(df_students, df_reports, df_lessons)
+def
