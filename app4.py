@@ -240,8 +240,19 @@ with st.sidebar:
             st.rerun()
     else:
         # تطبيق التنسيق والخط العربي واللون الذهبي على "توجيه المسار الرقمي"
-        st.markdown("<p style='color: #FFD700 !important; font-size: 1.3rem; text-shadow: 1px 1px 2px black; font-weight: bold; margin-bottom:0px;'>⚙️ توجيه المسار الرقمي:</p>", unsafe_allow_html=True)
-        menu = st.radio("", ["🏠 فضاء التلميذ والطالبات", "🔑 فضاء الإدارة والأستاذ"])
+        # استخدام أيقونة SVG أو ترميز HTML نقي يمنع المتصفح من ترجمته إلى كلمة "كيبورد"
+        st.markdown("""
+            <p style='color: #FFD700 !important; font-size: 1.3rem; text-shadow: 1px 1px 2px black; font-weight: bold; margin-bottom:10px; display: flex; align-items: center; gap: 8px;'>
+                <span style='font-size: 1.5rem;'>⚙️</span> توجيه المسار الرقمي:
+            </p>
+        """, unsafe_allow_html=True)
+        
+        # لمنع ظهور النصوص بشكل مزدوج أو مشوه عند الترجمة، نستخدم نصوصاً واضحة داخل الراديو
+        menu = st.radio(
+            label="اختر الفضاء المستهدف:", 
+            options=["فضاء التلميذات والتلاميذ", "فضاء الإدارة والأستاذ"],
+            label_visibility="collapsed" # يخفي عنوان الراديو الفرعي لتفادي التكرار
+        )
         st.session_state.role = "student" if "التلميذ" in menu else "admin"
 
 # --- 3. واجهة الأستاذ ---
