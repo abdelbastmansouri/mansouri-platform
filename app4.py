@@ -12,7 +12,7 @@ import io
 import time
 import base64
 import re  
-import hashlib # مكتبة توليد البصمات الرقمية الفريدة للصور لمنع الغش
+import hashlib 
 
 # --- 1. الإعدادات الأولية وإضفاء الطابع الاحترافي للوزارة ---
 st.set_page_config(
@@ -21,7 +21,7 @@ st.set_page_config(
     page_icon="math🇲🇦"
 )
 
-# دالة الخلفية السحابية المحدثة
+# دالة الخلفية السحابية
 def get_custom_bg():
     return """
     <style>
@@ -138,7 +138,6 @@ def upload_pdf_to_drive(file_name, file_bytes):
 def calculate_image_hash(file_bytes):
     return hashlib.md5(file_bytes).hexdigest()
 
-# التخزين المؤقت لحل مشكلة الـ Quota
 @st.cache_data(ttl=15)
 def load_data():
     sh = None
@@ -365,41 +364,21 @@ def student_space(df_students, df_reports, df_lessons):
         lesson_full_reports = {}
         if not student_all_submissions.empty:
             for _, row in student_all_submissions.iterrows():
-                lesson_percentages[row['الدرس']] = row['النسبة']
+                lesson_percentages[row['الدرس']] = str(row['النسبة']).strip()
                 lesson_full_reports[row['الدرس']] = row['التقرير']
         
         st.markdown("<div class='section-title'>📊 وضعيتك الحالية في السجل الرقمي:</div>", unsafe_allow_html=True)
         
-        if "الدرس 1" in submitted_lessons and "الدرس 2" in submitted_lessons:
-            p1 = lesson_percentages.get("الدرس 1", "N/A")
-            p2 = lesson_percentages.get("الدرس 2", "N/A")
-            st.markdown(f"""
-            <div class='status-box' style='border-right-color: #10b981;'>
-                📢 <b>لقد قمت بإرسال صور الدرس الأول والدرس الثاني معاً مسبقاً.</b><br>
-                📉 نسبة إنجازك لـ <b>الدرس الأول</b> هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{p1}</b></span><br>
-                📉 نسبة إنجازك لـ <b>الدرس الثاني</b> هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{p2}</b></span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        elif "الدرس 1" in submitted_lessons:
-            p1 = lesson_percentages.get("الدرس 1", "N/A")
-            st.markdown(f"""
-            <div class='status-box' style='border-right-color: #f59e0b;'>
-                📢 <b>لقد قمت بإرسال صور الدرس الأول مسبقاً.</b><br>
-                📉 نسبة إنجازك للدرس الأول هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{p1}</b></span><br>
-                ⚠️ <i>المرجو الانتقال إلى تبويب الدرس الثاني لإكمال إرسال بقية الواجبات.</i>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        elif "الدرس 2" in submitted_lessons:
-            p2 = lesson_percentages.get("الدرس 2", "N/A")
-            st.markdown(f"""
-            <div class='status-box' style='border-right-color: #f59e0b;'>
-                📢 <b>لقد قمت بإرسال صور الدرس الثاني مسبقاً.</b><br>
-                📉 نسبة إنجازك للدرس الثاني هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{p2}</b></span><br>
-                ⚠️ <i>المرجو الانتقال إلى تبويب الدرس الأول لإكمال إرسال بقية الواجبات.</i>
-            </div>
-            """, unsafe_allow_html=True)
+        if "الدرس 1" in submitted_lessons or "الدرس 2" in submitted_lessons:
+            status_text = "📢 <b>حالة إرسال الفروض والدفاتر:</b><br>"
+            for l_sub in ["الدرس 1", "الدرس 2"]:
+                if l_sub in submitted_lessons:
+                    pct = lesson_percentages.get(l_sub, "N/A")
+                    if pct == "0%":
+                        status_text += f"🚨 تم تدقيق <b>{l_sub}</b> وتم رصد <b>مخالفة/تكرار صور</b> (النسبة: <span style='color:white; background:red; padding:2px 6px; border-radius:4px;'><b>0%</b></span>)<br>"
+                    else:
+                        status_text += f"📉 نسبة إنجازك لـ <b>{l_sub}</b> هي: <span style='color:#e0f2fe; background:#1e3a8a; padding:2px 8px; border-radius:5px;'><b>{pct}</b></span><br>"
+            st.markdown(f"<div class='status-box'>{status_text}</div>", unsafe_allow_html=True)
         else:
             st.warning("ℹ️ لم تقم بإرسال أي دروس بعد. المرجو اختيار الدرس من التبويبات أسفله ورفع 14 صورة على الأقل.")
 
@@ -409,23 +388,28 @@ def student_space(df_students, df_reports, df_lessons):
             with tab:
                 l_name = f"الدرس {i+1}"
                 
-                if "الدرس 1" in submitted_lessons and "الدرس 2" in submitted_lessons:
-                    st.error(f"❌ **تنبيه الإدارة:** لقد أرسلت صور الدرس الأول والدرس الثاني مسبقاً.")
-                    st.markdown(f"### 📋 تقرير التدقيق المخزن لـ {l_name}:")
-                    st.info(lesson_full_reports.get(l_name, "لا يوجد نص تقرير محفوظ."))
-                
-                elif l_name in submitted_lessons:
+                # 🛠️ [التعديل الجذري]: إذا كان التلميذ قد أرسل الدرس مسبقاً
+                if l_name in submitted_lessons:
                     current_p = lesson_percentages.get(l_name, "N/A")
-                    st.warning(f"ℹ️ **لقد أرسلت صور {l_name} مسبقاً** بنجاح، ونسبة إنجازك المحفوظة هي: **{current_p}**.")
-                    st.markdown(f"### 📋 تقرير التدقيق المخزن لـ {l_name}:")
-                    st.info(lesson_full_reports.get(l_name, "لا يوجد نص تقرير محفوظ."))
+                    
+                    if current_p == "0%":
+                        # إذا كشف النظام غشاً، نظهر له تنبيهاً أحمر صارماً وثابتاً بالتقرير
+                        st.error(f"🚨 **تنبيه نظام التدقيق والنزاهة الرقمية:**")
+                        st.markdown(f"<div style='background-color:#fee2e2; border-right:6px solid #dc2626; padding:15px; border-radius:8px; color:#991b1b; font-weight:bold;'>⚠️ لقد تم رفض هذا الإرسال وحصلت على نسبة 0% بسبب رصد تكرار بصرى في صور الدفاتر المرفوعة لخداع النظام.</div>", unsafe_allow_html=True)
+                        st.markdown(f"### 📋 تفاصيل تقرير المخالفة المحفوظ إدارياً:")
+                        st.info(lesson_full_reports.get(l_name, "لا يوجد نص تقرير محفوظ."))
+                    else:
+                        # الإرسال العادي الناجح يظل ثابتاً بلون برتقالي/أخضر مريح
+                        st.warning(f"ℹ️ **لقد أرسلت صور {l_name} مسبقاً** بنجاح، ونسبة إنجازك المحفوظة هي: **{current_p}**.")
+                        st.markdown(f"### 📋 تقرير التدقيق المخزن لـ {l_name}:")
+                        st.info(lesson_full_reports.get(l_name, "لا يوجد نص تقرير محفوظ."))
                 
                 else:
                     st.markdown(f"#### 📸 مركز رفع صور دفتر مادة الرياضيات - {l_name}")
                     saved_lesson_reference = get_lesson_ref(l_name, df_lessons)
                     
                     up_files = st.file_uploader(
-                        f"اختر صور صفحات الدفتر لـ {l_name} (🚨 تنبيه: يشترط تحميل 13 صورة على الأقل)", 
+                        f"اختر صور صفحات الدفتر لـ {l_name} (🚨 تنبيه: يشترط تحميل 14 صورة على الأقل)", 
                         accept_multiple_files=True, 
                         key=f"up_{l_name}", 
                         type=['jpg','jpeg','png']
@@ -433,7 +417,7 @@ def student_space(df_students, df_reports, df_lessons):
                     
                     if st.button(f"بدء المعالجة والتدقيق الفوري لـ {l_name}", key=f"btn_{l_name}"):
                         if up_files:
-                            if len(up_files) < 13:
+                            if len(up_files) < 14:
                                 st.error(f"⚠️ **خطأ في معايير قبول الدفتر:** لقد قمت برفع ({len(up_files)}) صور فقط! ميثاق المادة يشترط رفع **14 صورة على الأقل** للدرس لضمان تدقيق المحتوى كاملاً.")
                             else:
                                 with st.spinner("🔄 جاري التحقق الفوري من سجلاتك وفحص جودة الصور..."):
@@ -486,7 +470,6 @@ def student_space(df_students, df_reports, df_lessons):
                                 else:
                                     with st.spinner("🔄 البصمات والعدد سليم تماماً! جاري قياس نسبة الإنجاز..."):
                                         try:
-                                            # 🛠️ [تحديث الـ Prompt لكشف التكرار البصري]:
                                             prompt_instructions = f"""
                                             أنت مساعد أستاذ الرياضيات عبد الباسط منصوري بالثانوية التأهلية المغربية. 
                                             التلميذ {student_name} (القسم: {st.session_state.user['class']}) أرسل صور دفتره لدرس ({l_name}).
@@ -496,7 +479,7 @@ def student_space(df_students, df_reports, df_lessons):
                   
                                             🚨 معيار صارم وحاسم ضد الغش: 
                                             قم بفحص الصور المرفوعة بصرياً بدقة. إذا لاحظت أن التلميذ قام برفع "صورتين أو أكثر مكررتين لنفس الصفحة تماماً" (سواء أخذ لقطة شاشة مرتين، أو صور نفس الصفحة من زاويتين مختلفتين لخداع النظام وزيادة عدد الصور لكي يصل لـ 14 صورة)، فقم فوراً بما يلي:
-                                            1. اكتب تقريراً حازماً وموجزاً تخبره فيه بأنه تم رصد محاولة تكرار صور لخداع النظام.
+                                            1. اكتب تقريراً حازماً وموجزاً تخبره فيه بأنه تم رصد محاولة تكرار صور لخداع النظام ومخالفة ميثاق المادة.
                                             2. ضع العبارة الأخيرة تماماً هكذا بدون زيادة أو نقصان:
                                             النسبة النهائية: 0%
                                             
