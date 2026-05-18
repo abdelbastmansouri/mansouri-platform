@@ -39,6 +39,13 @@ def get_custom_bg():
         font-family: 'Amiri', serif !important;
     }
     
+    /* 🛠️ تطبيق مقترح الأستاذ عبد الباسط: جعل الشريط العلوي أبيض بالكامل لتمويه الكلمة البيضاء */
+    [data-testid="stHeader"] {
+        background-color: rgba(255, 255, 255, 1) !important;
+        background: white !important;
+        border-bottom: 1px solid rgba(197, 160, 89, 0.3) !important;
+    }
+    
     /* كلاس خاص لتنسيق العناوين باللون الذهبي الملكي اللامع مع ظلال احترافية بارزة */
     .golden-title {
         color: #FFD700 !important;
@@ -67,7 +74,7 @@ def get_custom_bg():
     
     /* تحسين مظهر القائمة الجانبية باللون الكحلي الملكي للوزارة */
     [data-testid="stSidebar"] { 
-        background-color: rgba(26, 54, 93, 0.98); 
+        background-color: rgba(26, 54, 93, 0.98) !important; 
     }
     [data-testid="stSidebar"] * { color: white !important; }
     
@@ -87,7 +94,7 @@ def get_custom_bg():
         font-weight: bold !important; 
     }
     
-    /* تنسيق خاص وعصري للأزرار التفاعلية العادية (مثل تسجيل الدخول / تسجيل الخروج) */
+    /* تنسيق خاص للأزرار العادية (تسجيل الدخول / تسجيل الخروج) */
     .stButton>button {
         background-color: #1a365d !important; 
         color: #FFD700 !important;
@@ -106,9 +113,7 @@ def get_custom_bg():
         box-shadow: 0 4px 12px rgba(197, 160, 89, 0.4) !important;
     }
     
-    /* 🛠️ تطبيق فكرة التمويه اللوني لإخفاء الكلمات المشوهة تماماً عند حوم الفأرة */
-    
-    /* إخفاء نصوص الأزرار الأصلية وجعلها شفافة */
+    /* 🛠️ إخفاء نصوص الأزرار الأصلية وجعلها شفافة تماماً */
     [data-testid="stSidebarCollapseButton"] button, 
     [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] {
         color: transparent !important;
@@ -148,22 +153,8 @@ def get_custom_bg():
         transform: translate(-50%, -50%) !important;
         visibility: visible !important;
     }
-
-    /* صبغة التمويه عند تمرير الفأرة ليموت النص المشوه مع لون الخلفية المباشرة له */
-    [data-testid="stSidebarCollapseButton"] button:hover,
-    [data-testid="stSidebarCollapseButton"] button:hover * {
-        color: #f5f7fa !important; /* يتطابق مع بياض خلفية الصفحة الفاتحة */
-        background-color: transparent !important;
-    }
-
-    [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]:hover,
-    [data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]:hover * {
-        color: #1a365d !important; /* يتطابق مع كحلي خلفية القائمة الجانبية */
-        background-color: transparent !important;
-    }
     </style>
     """
-
 st.markdown(get_custom_bg(), unsafe_allow_html=True)
 
 # تفعيل الربط السحابي الآمن مع مفتاح Gemini الجديد
